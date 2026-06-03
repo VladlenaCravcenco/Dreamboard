@@ -1,0 +1,23 @@
+<svg width="192" height="192" viewBox="0 0 192 192" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="192" height="192" rx="42" fill="#F7F3EC"/>
+  
+  <!-- Decorative frame -->
+  <rect x="40" y="40" width="112" height="112" rx="8" fill="none" stroke="#B8935E" stroke-width="1" opacity="0.3"/>
+  
+  <!-- Top star/sparkle -->
+  <circle cx="96" cy="60" r="4" fill="#B8935E"/>
+  <line x1="96" y1="52" x2="96" y2="68" stroke="#B8935E" stroke-width="1.5" opacity="0.6"/>
+  <line x1="88" y1="60" x2="104" y2="60" stroke="#B8935E" stroke-width="1.5" opacity="0.6"/>
+  
+  <!-- Center "D" monogram -->
+  <g transform="translate(96, 96)">
+    <!-- Letter D shape -->
+    <path d="M -18 -24 L -18 24 L 0 24 C 12 24 22 16 22 0 C 22 -16 12 -24 0 -24 Z M -10 -16 L 0 -16 C 8 -16 14 -10 14 0 C 14 10 8 16 0 16 L -10 16 Z" fill="#1C1814"/>
+  </g>
+  
+  <!-- Bottom decorative dots -->
+  <circle cx="76" cy="132" r="2" fill="#B8935E" opacity="0.4"/>
+  <circle cx="96" cy="132" r="2" fill="#B8935E" opacity="0.6"/>
+  <circle cx="116" cy="132" r="2" fill="#B8935E" opacity="0.4"/>
+</svg>
