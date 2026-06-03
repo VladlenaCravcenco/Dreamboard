@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Track and fund your dreams with smart savings">
+  <meta name="theme-color" content="#B8924A">
+  <title>Dreamboard - Track & Fund Your Dreams</title>
+  
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/manifest.json">
+  
+  <!-- Icons -->
+  <link rel="icon" type="image/svg+xml" href="/icon.svg">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png">
+  <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png">
+  <link rel="apple-touch-icon" sizes="512x512" href="/icon-512.png">
+  
+  <!-- Inline SVG favicon as fallback -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg width='32' height='32' viewBox='0 0 32 32' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='32' height='32' rx='7' fill='%23F7F3EC'/%3E%3Cpath d='M 8 8 L 8 24 L 14 24 C 18 24 21 21 21 16 C 21 11 18 8 14 8 Z M 11 11 L 14 11 C 16 11 18 13 18 16 C 18 19 16 21 14 21 L 11 21 Z' fill='%231C1814'/%3E%3C/svg%3E">
+  
+  <script type="module" src="/src/main.tsx"></script>
+</head>
+<body>
+  <div id="root"></div>
+  
+  <!-- Register Service Worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(registration => {
+            console.log('SW registered:', registration);
+          })
+          .catch(error => {
+            console.log('SW registration failed:', error);
+          });
+      });
+    }
+  </script>
+</body>
+</html>

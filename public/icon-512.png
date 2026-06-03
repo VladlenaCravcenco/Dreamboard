@@ -1,0 +1,27 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background with rounded corners -->
+  <rect width="512" height="512" rx="112" fill="#F7F3EC"/>
+  
+  <!-- Subtle decorative elements -->
+  <circle cx="256" cy="133" r="8" fill="#B8935E" opacity="0.2"/>
+  <circle cx="256" cy="379" r="8" fill="#B8935E" opacity="0.2"/>
+  
+  <!-- Top decorative line -->
+  <line x1="133" y1="187" x2="379" y2="187" stroke="#B8935E" stroke-width="1.5" opacity="0.3"/>
+  
+  <!-- "Dream" text (top) -->
+  <g>
+    <text x="256" y="256" font-family="serif" font-size="102" font-weight="300" font-style="italic" fill="#1C1814" text-anchor="middle" dominant-baseline="middle">Dream</text>
+  </g>
+  
+  <!-- Middle decorative dot -->
+  <circle cx="256" cy="293" r="4" fill="#B8935E" opacity="0.4"/>
+  
+  <!-- "board" text (bottom) -->
+  <g>
+    <text x="256" y="342" font-family="serif" font-size="102" font-weight="300" font-style="italic" fill="#B8935E" text-anchor="middle" dominant-baseline="middle">board</text>
+  </g>
+  
+  <!-- Bottom decorative line -->
+  <line x1="133" y1="325" x2="379" y2="325" stroke="#B8935E" stroke-width="1.5" opacity="0.3"/>
+</svg>
