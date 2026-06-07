@@ -14,7 +14,7 @@ import {
 import { LofiPlayer } from './LofiPlayer';
 
 const Layout: React.FC = () => {
-  const { quote, setQuote, theme, toggleTheme } = useDreams();
+  const { quote, setQuote, theme, toggleTheme, refreshDreams } = useDreams();
   const { user, signOut } = useAuth();
   const [isEditingQuote, setIsEditingQuote] = useState(false);
   const [editedQuote, setEditedQuote] = useState(quote);
@@ -35,6 +35,11 @@ const Layout: React.FC = () => {
     navigate('/auth', { replace: true });
   };
 
+  const handleLogoClick = async () => {
+    navigate('/');
+    await refreshDreams();
+  };
+
   const isActiveTab = (path: string) => {
     if (path === '/') return location.pathname === '/';
     return location.pathname.startsWith(path);
@@ -50,8 +55,10 @@ const Layout: React.FC = () => {
           <div className="flex items-center justify-between mb-3 md:mb-4 gap-2">
             {/* Logo */}
             <button
-              onClick={() => navigate('/')}
+              onClick={handleLogoClick}
               className="flex items-center gap-1 px-2 md:px-3 py-1.5 rounded-lg hover:bg-muted/50 transition-all hover:scale-105 cursor-pointer flex-shrink-0"
+              title="Refresh dreams"
+              aria-label="Refresh dreams"
             >
               <span
                 className="text-lg md:text-xl lg:text-2xl whitespace-nowrap"
