@@ -335,7 +335,7 @@ const DreamTemplates: React.FC<DreamTemplatesProps> = ({ onAddTemplate }) => {
             {displayedTemplates.map((template, idx) => (
               <div
                 key={`${template.title}-${idx}`}
-                className={`flex-shrink-0 w-[280px] md:w-[320px] bg-card border border-border rounded-xl overflow-hidden hover:shadow-lg transition-all duration-500 group ${
+                className={`flex-shrink-0 w-[210px] sm:w-[230px] md:w-[320px] bg-card border border-border rounded-xl overflow-hidden hover:shadow-lg transition-all duration-500 group ${
                   isVisible ? 'animate-slide-in' : ''
                 }`}
                 style={{ 
@@ -344,43 +344,43 @@ const DreamTemplates: React.FC<DreamTemplatesProps> = ({ onAddTemplate }) => {
                 }}
               >
                 {/* Image */}
-                <div className="relative h-32 md:h-40 overflow-hidden bg-muted">
+                <div className="relative h-24 sm:h-28 md:h-40 overflow-hidden bg-muted">
                   <img
                     src={template.image}
                     alt={template.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
-                  <div className="absolute top-2 right-2 bg-background/90 backdrop-blur-sm px-2 py-1 rounded-full text-lg md:text-xl">
+                  <div className="absolute top-1.5 right-1.5 md:top-2 md:right-2 bg-background/90 backdrop-blur-sm px-1.5 md:px-2 py-0.5 md:py-1 rounded-full text-sm md:text-xl">
                     {template.emoji}
                   </div>
                 </div>
 
                 {/* Content */}
-                <div className="p-3 md:p-4">
+                <div className="p-2.5 md:p-4">
                   {/* Category Tag */}
-                  <div className="inline-block px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full mb-2">
+                  <div className="inline-block px-2 py-0.5 bg-primary/10 text-primary text-[10px] md:text-xs rounded-full mb-1.5 md:mb-2">
                     {template.categoryLabel}
                   </div>
 
                   {/* Title */}
                   <h3 
-                    className="text-base md:text-lg font-medium text-foreground mb-1.5 line-clamp-1"
+                    className="text-sm md:text-lg font-medium text-foreground mb-1 line-clamp-1"
                     style={{ fontFamily: 'Cormorant Garamond, serif' }}
                   >
                     {template.title}
                   </h3>
 
                   {/* Description */}
-                  <p className="text-xs md:text-sm text-muted-foreground mb-3 line-clamp-2">
+                  <p className="text-[11px] md:text-sm text-muted-foreground mb-2 md:mb-3 line-clamp-2 leading-snug">
                     {template.description}
                   </p>
 
                   {/* Price & Button */}
                   <div className="flex items-center justify-between gap-2">
                     <div>
-                      <div className="text-xs text-muted-foreground">Target</div>
+                      <div className="text-[10px] md:text-xs text-muted-foreground">Target</div>
                       <div 
-                        className="text-lg md:text-xl font-medium text-primary"
+                        className="text-sm md:text-xl font-medium text-primary"
                         style={{ fontFamily: 'Cormorant Garamond, serif' }}
                       >
                         ${template.target_amount.toLocaleString()}
@@ -389,7 +389,7 @@ const DreamTemplates: React.FC<DreamTemplatesProps> = ({ onAddTemplate }) => {
 
                     <button
                       onClick={() => handleAddTemplate(template, idx)}
-                      className={`flex items-center gap-1.5 px-3 md:px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-all text-xs md:text-sm font-medium shadow-md hover:shadow-lg active:scale-95 ${addedId === idx ? 'animate-bounce' : ''}`}
+                      className={`flex items-center gap-1 px-2.5 md:px-4 py-1.5 md:py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-all text-[11px] md:text-sm font-medium shadow-md hover:shadow-lg active:scale-95 ${addedId === idx ? 'animate-bounce' : ''}`}
                     >
                       <Plus className="w-3.5 md:w-4 h-3.5 md:h-4" />
                       Add

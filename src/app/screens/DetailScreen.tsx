@@ -1296,12 +1296,18 @@ const DetailScreen: React.FC = () => {
 
               {/* Confirm Input */}
               <div className="mb-6">
-                <label className="block text-sm text-muted-foreground mb-1">Type dream title to confirm</label>
+                <label className="block text-sm text-muted-foreground mb-2">
+                  Type the dream title to confirm:
+                </label>
+                <div className="mb-3 rounded-lg border border-border bg-muted/50 px-3 py-2">
+                  <span className="text-xs text-muted-foreground">Dream title</span>
+                  <p className="font-medium text-foreground break-words">{dream.title}</p>
+                </div>
                 <input
                   type="text"
                   value={deleteConfirmText}
                   onChange={(e) => setDeleteConfirmText(e.target.value)}
-                  placeholder={dream.title}
+                  placeholder="Enter the title shown above"
                   className="w-full px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:border-primary text-sm"
                 />
               </div>
