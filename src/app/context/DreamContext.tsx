@@ -11,6 +11,7 @@ import {
 import { compressImage } from '../utils/imageCompression';
 import { AuthContext } from './AuthContext';
 import { toast } from 'sonner';
+import { supabase } from '../lib/supabase';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -69,6 +70,56 @@ const readLocalData = (userId?: string): LocalDreamboardData | null => {
     return null;
   }
 };
+
+const toDatabaseDream = (dream: Dream | CompletedDream, userId: string) => ({
+  id: dream.id,
+  user_id: userId,
+  category: dream.category,
+  category_label: dream.categoryLabel,
+  tag: dream.tag,
+  title: dream.title,
+  location: dream.location ?? null,
+  season: dream.season ?? null,
+  price: dream.price ?? null,
+  duration: dream.duration ?? null,
+  difficulty: dream.difficulty ?? null,
+  description: dream.description,
+  bucket_items: dream.bucketItems ?? [],
+  image: 'image' in dream ? dream.image : '',
+  done: dream.done,
+  note: dream.note ?? null,
+  saved_amount: dream.saved_amount ?? 0,
+  cover_image_url: dream.cover_image_url ?? null,
+  completion_image_url: dream.completion_image_url ?? null,
+  completed_at: dream.completed_at ?? null,
+  created_at: dream.created_at ?? new Date().toISOString(),
+  updated_at: dream.updated_at ?? new Date().toISOString(),
+});
+
+const fromDatabaseDream = (row: any): Dream => ({
+  id: row.id,
+  user_id: row.user_id,
+  category: row.category,
+  categoryLabel: row.category_label,
+  tag: row.tag ?? '',
+  title: row.title,
+  location: row.location ?? undefined,
+  season: row.season ?? undefined,
+  price: row.price === null ? undefined : Number(row.price),
+  duration: row.duration ?? undefined,
+  difficulty: row.difficulty ?? undefined,
+  description: row.description ?? '',
+  bucketItems: row.bucket_items ?? [],
+  image: row.image ?? '',
+  done: row.done ?? false,
+  note: row.note ?? undefined,
+  saved_amount: Number(row.saved_amount ?? 0),
+  cover_image_url: row.cover_image_url ?? undefined,
+  completion_image_url: row.completion_image_url ?? undefined,
+  completed_at: row.completed_at,
+  created_at: row.created_at,
+  updated_at: row.updated_at,
+});
 
 const DreamContext = createContext<DreamContextType | undefined>(undefined);
 
@@ -153,10 +204,62 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     window.setTimeout(() => {
       localDataReady.current = true;
     }, 0);
+
+    if (user) {
+      syncFromSupabase(data).catch((error) => {
+        console.error('Dream sync failed; continuing with local data:', error);
+      });
+    }
   };
 
   const refreshDreams = async () => {
     loadLocalData();
+  };
+
+  const syncFromSupabase = async (localData: LocalDreamboardData | null) => {
+    if (!user) return;
+
+    const localDreams = [
+      ...(localData?.dreams ?? []),
+      ...(localData?.completedDreams ?? []),
+    ];
+
+    if (localDreams.length > 0) {
+      const { error: uploadError } = await supabase
+        .from('dreams')
+        .upsert(localDreams.map((dream) => toDatabaseDream(dream, user.id)));
+
+      if (uploadError) throw uploadError;
+    }
+
+    const { data, error } = await supabase
+      .from('dreams')
+      .select('*')
+      .order('created_at', { ascending: true });
+
+    if (error) throw error;
+
+    const all = (data ?? []).map(fromDatabaseDream);
+    const active = all.filter((dream) => !dream.done);
+    const done = all.filter((dream) => dream.done);
+
+    setDreams(active);
+    setCompletedDreams(done.map((dream) => ({ ...dream, completedAt: dream.completed_at ?? undefined })));
+    setDreamProgress(all.map((dream) => ({ dreamId: dream.id, savedAmount: dream.saved_amount ?? 0 })));
+    setDreamNotes(all.filter((dream) => dream.note).map((dream) => ({ dreamId: dream.id, note: dream.note! })));
+    setCompletionPhotos(
+      done
+        .filter((dream) => dream.completion_image_url)
+        .map((dream) => ({ dreamId: dream.id, photoUrl: dream.completion_image_url! }))
+    );
+  };
+
+  const syncDream = async (dream: Dream) => {
+    if (!user) return;
+    const { error } = await supabase
+      .from('dreams')
+      .upsert(toDatabaseDream(dream, user.id));
+    if (error) throw error;
   };
 
   // ─── Quote & Theme ─────────────────────────────────────────────────────────
@@ -185,11 +288,17 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     setDreams((prev) => [...prev, nd]);
     setDreamProgress((prev) => [...prev, { dreamId: nd.id, savedAmount: nd.saved_amount ?? 0 }]);
+    syncDream(nd).catch((error) => console.error('Failed to sync new dream:', error));
     return true;
   };
 
   const updateDreamField = async (dreamId: string, field: string, value: any) => {
-    setDreams((prev) => prev.map((d) => (d.id === dreamId ? { ...d, [field]: value } : d)));
+    setDreams((prev) => prev.map((dream) => {
+      if (dream.id !== dreamId) return dream;
+      const updated = { ...dream, [field]: value, updated_at: new Date().toISOString() };
+      syncDream(updated).catch((error) => console.error(`Failed to sync dream field ${field}:`, error));
+      return updated;
+    }));
   };
 
   const deleteDream = (dreamId: string) => {
@@ -197,6 +306,10 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setDreamProgress((prev) => prev.filter((p) => p.dreamId !== dreamId));
     setDreamNotes((prev) => prev.filter((n) => n.dreamId !== dreamId));
     setSavingsEvents((prev) => prev.filter((e) => e.dream_id !== dreamId));
+    if (user) {
+      supabase.from('dreams').delete().eq('id', dreamId)
+        .then(({ error }) => error && console.error('Failed to sync dream deletion:', error));
+    }
   };
 
   // ─── Completion ────────────────────────────────────────────────────────────
@@ -217,19 +330,29 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     if (photoUrl) {
       setCompletionPhotos((prev) => [{ dreamId, photoUrl }, ...prev.filter((p) => p.dreamId !== dreamId)]);
     }
-
+    syncDream({ ...dream, ...updates }).catch((error) => console.error('Failed to sync completed dream:', error));
   };
 
   const clearAllCompleted = async () => {
+    const completedIds = completedDreams.map((dream) => dream.id);
     setCompletedDreams([]);
     setCompletionPhotos([]);
+    if (user && completedIds.length > 0) {
+      const { error } = await supabase.from('dreams').delete().in('id', completedIds);
+      if (error) console.error('Failed to sync completed dream deletion:', error);
+    }
     toast.success('All completed dreams cleared!');
   };
 
   // ─── Bucket items ──────────────────────────────────────────────────────────
 
   const _saveBucketItems = (dreamId: string, items: BucketItem[]) => {
-    setDreams((prev) => prev.map((d) => (d.id === dreamId ? { ...d, bucketItems: items } : d)));
+    setDreams((prev) => prev.map((dream) => {
+      if (dream.id !== dreamId) return dream;
+      const updated = { ...dream, bucketItems: items, updated_at: new Date().toISOString() };
+      syncDream(updated).catch((error) => console.error('Failed to sync bucket items:', error));
+      return updated;
+    }));
   };
 
   const addCustomBucketItem = (dreamId: string, text: string) => {
@@ -275,7 +398,12 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         ? prev.map((p) => (p.dreamId === dreamId ? { ...p, savedAmount: amount } : p))
         : [...prev, { dreamId, savedAmount: amount }];
     });
-    setDreams((prev) => prev.map((d) => (d.id === dreamId ? { ...d, saved_amount: amount } : d)));
+    setDreams((prev) => prev.map((dream) => {
+      if (dream.id !== dreamId) return dream;
+      const updated = { ...dream, saved_amount: amount, updated_at: new Date().toISOString() };
+      syncDream(updated).catch((error) => console.error('Failed to sync dream progress:', error));
+      return updated;
+    }));
   };
 
   const freezeAmount = async (dreamId: string, amount: number, freezeUntil?: string) => {
@@ -306,6 +434,12 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         ? prev.map((n) => (n.dreamId === dreamId ? { ...n, note } : n))
         : [...prev, { dreamId, note }];
     });
+    setDreams((prev) => prev.map((dream) => {
+      if (dream.id !== dreamId) return dream;
+      const updated = { ...dream, note, updated_at: new Date().toISOString() };
+      syncDream(updated).catch((error) => console.error('Failed to sync dream note:', error));
+      return updated;
+    }));
   };
 
   // ─── Image uploads ─────────────────────────────────────────────────────────
