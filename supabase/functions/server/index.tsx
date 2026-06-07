@@ -1,16 +1,17 @@
 import { Hono } from 'npm:hono';
 import { cors } from 'npm:hono/cors';
 import { logger } from 'npm:hono/logger';
-import { createClient } from 'npm:@supabase/supabase-js@2';
+import { createClient } from 'npm:@supabase/supabase-js@2.98.0';
 import * as userKv from './user_kv_store.tsx';
 
 const app = new Hono();
+const SERVER_VERSION = '2026-06-07-es256-gateway-fix';
 
 // Middleware
 app.use('*', cors({
   origin: '*',
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization'],
+  allowHeaders: ['Content-Type', 'Authorization', 'X-User-Authorization'],
 }));
 app.use('*', logger(console.log));
 
@@ -23,15 +24,20 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
 // Helper to get authenticated user
 async function getAuthUser(request: Request) {
-  const authHeader = request.headers.get('Authorization');
+  const authHeader = request.headers.get('X-User-Authorization')
+    ?? request.headers.get('Authorization');
   if (!authHeader) return null;
   
   const token = authHeader.replace('Bearer ', '');
-  const supabase = createClient(supabaseUrl, supabaseAnonKey);
-  const { data: { user }, error } = await supabase.auth.getUser(token);
-  
-  if (error || !user) return null;
-  return user;
+  const response = await fetch(`${supabaseUrl}/auth/v1/user`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      apikey: supabaseAnonKey,
+    },
+  });
+
+  if (!response.ok) return null;
+  return await response.json();
 }
 
 // ============================================================================
@@ -608,7 +614,22 @@ app.delete('/make-server-92c819cc/delete-image', async (c) => {
 
 // Health check
 app.get('/make-server-92c819cc/health', (c) => {
-  return c.json({ status: 'ok', timestamp: new Date().toISOString() });
+  return c.json({ status: 'ok', version: SERVER_VERSION, timestamp: new Date().toISOString() });
+});
+
+app.get('/make-server-92c819cc/storage-health', async (c) => {
+  try {
+    const user = await getAuthUser(c.req.raw);
+    if (!user) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+
+    await userKv.getByPrefix(`dream:${user.id}:`, user.id);
+    return c.json({ status: 'ok', userId: user.id });
+  } catch (error: any) {
+    console.error('Storage health error:', error);
+    return c.json({ error: `Storage unavailable: ${error.message}` }, 500);
+  }
 });
 
 // ============================================================================

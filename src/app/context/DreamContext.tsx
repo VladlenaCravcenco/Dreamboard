@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import {
   Dream,
   DreamProgress,
@@ -11,7 +11,6 @@ import {
 import { compressImage } from '../utils/imageCompression';
 import { AuthContext } from './AuthContext';
 import { toast } from 'sonner';
-import { apiCall, uploadFile } from '../lib/supabase';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -34,7 +33,7 @@ interface DreamContextType {
   updateBucketItem: (dreamId: string, itemId: string, text: string) => void;
   toggleBucketItem: (dreamId: string, itemId: string) => void;
   setCompletionPhoto: (dreamId: string, photoUrl: string) => void;
-  addDream: (dream: Omit<Dream, 'id' | 'done'>) => void;
+  addDream: (dream: Omit<Dream, 'id' | 'done'>) => Promise<boolean>;
   updateDreamField: (dreamId: string, field: string, value: any) => Promise<void>;
   uploadCoverImage: (dreamId: string, file: File) => Promise<void>;
   uploadCompletionImage: (dreamId: string, file: File) => Promise<void>;
@@ -46,6 +45,30 @@ interface DreamContextType {
 }
 
 const DEFAULT_QUOTE = 'The future belongs to those who believe in the beauty of their dreams.';
+
+interface LocalDreamboardData {
+  dreams: Dream[];
+  completedDreams: CompletedDream[];
+  dreamProgress: DreamProgress[];
+  dreamNotes: DreamNote[];
+  completionPhotos: DreamCompletionPhoto[];
+  savingsEvents: SavingsEvent[];
+  quote: string;
+  theme: 'light' | 'dark';
+}
+
+const getLocalStorageKey = (userId?: string) =>
+  `dreamboard_${userId ?? 'guest'}_data`;
+
+const readLocalData = (userId?: string): LocalDreamboardData | null => {
+  try {
+    const raw = localStorage.getItem(getLocalStorageKey(userId));
+    return raw ? JSON.parse(raw) : null;
+  } catch (error) {
+    console.error('Failed to read local dreamboard:', error);
+    return null;
+  }
+};
 
 const DreamContext = createContext<DreamContextType | undefined>(undefined);
 
@@ -69,6 +92,7 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [quote, setQuoteState] = useState(DEFAULT_QUOTE);
   const [theme, setThemeState] = useState<'light' | 'dark'>('light');
   const [loading, setLoading] = useState(true);
+  const localDataReady = useRef(false);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
@@ -76,136 +100,96 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   useEffect(() => {
     if (authLoading) return;
-    if (user) {
-      loadFromApi();
-    } else {
-      loadEmpty();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    loadLocalData();
   }, [authLoading, user?.id]);
 
-  // ─── Guest: чистый лист ────────────────────────────────────────────────────
+  useEffect(() => {
+    if (authLoading || !localDataReady.current) return;
 
-  const loadEmpty = () => {
-    setDreams([]);
-    setCompletedDreams([]);
-    setDreamProgress([]);
-    setDreamNotes([]);
-    setCompletionPhotos([]);
-    setSavingsEvents([]);
-    setQuoteState(DEFAULT_QUOTE);
-    setThemeState('light');
-    setLoading(false);
-  };
+    const data: LocalDreamboardData = {
+      dreams,
+      completedDreams,
+      dreamProgress,
+      dreamNotes,
+      completionPhotos,
+      savingsEvents,
+      quote,
+      theme,
+    };
 
-  // ─── Auth: только API ──────────────────────────────────────────────────────
-
-  const loadFromApi = async () => {
-    setLoading(true);
     try {
-      const [dreamsRes, profileRes] = await Promise.allSettled([
-        apiCall('/dreams'),
-        apiCall('/profile'),
-      ]);
-
-      if (dreamsRes.status === 'rejected') {
-        // 401 = токен ещё не готов, просто оставляем пустым — не показываем ошибку
-        const msg = String(dreamsRes.reason);
-        const is401 = msg.includes('401') || msg.includes('Session expired') || msg.includes('Unauthorized');
-        if (!is401) {
-          console.error('Failed to load dreams:', dreamsRes.reason);
-          toast.error('Could not load your dreams. Please refresh.');
-        }
-        setLoading(false);
-        return;
-      }
-
-      const all: any[] = dreamsRes.value.dreams ?? [];
-      const active = all.filter((d) => !d.done);
-      const done = all.filter((d) => d.done);
-
-      setDreams(active);
-      setCompletedDreams(done.map((d) => ({ ...d, completedAt: d.completed_at })));
-      setDreamProgress(all.map((d) => ({ dreamId: d.id, savedAmount: d.saved_amount ?? 0 })));
-      setDreamNotes(all.filter((d) => d.note).map((d) => ({ dreamId: d.id, note: d.note })));
-      setCompletionPhotos(
-        done
-          .filter((d) => d.completion_image_url)
-          .map((d) => ({ dreamId: d.id, photoUrl: d.completion_image_url }))
-      );
-      setSavingsEvents([]);
-
-      if (profileRes.status === 'fulfilled' && profileRes.value.profile) {
-        const p = profileRes.value.profile;
-        setQuoteState(p.quote ?? DEFAULT_QUOTE);
-        setThemeState(p.theme ?? 'light');
-      }
-    } catch (err) {
-      console.error('loadFromApi error:', err);
-      toast.error('Failed to load data.');
-    } finally {
-      setLoading(false);
+      localStorage.setItem(getLocalStorageKey(user?.id), JSON.stringify(data));
+    } catch (error) {
+      console.error('Failed to save local dreamboard:', error);
     }
+  }, [
+    authLoading,
+    user?.id,
+    dreams,
+    completedDreams,
+    dreamProgress,
+    dreamNotes,
+    completionPhotos,
+    savingsEvents,
+    quote,
+    theme,
+  ]);
+
+  // ─── Local-first storage ───────────────────────────────────────────────────
+
+  const loadLocalData = () => {
+    localDataReady.current = false;
+    const data = readLocalData(user?.id);
+
+    setDreams(data?.dreams ?? []);
+    setCompletedDreams(data?.completedDreams ?? []);
+    setDreamProgress(data?.dreamProgress ?? []);
+    setDreamNotes(data?.dreamNotes ?? []);
+    setCompletionPhotos(data?.completionPhotos ?? []);
+    setSavingsEvents(data?.savingsEvents ?? []);
+    setQuoteState(data?.quote ?? DEFAULT_QUOTE);
+    setThemeState(data?.theme ?? 'light');
+    setLoading(false);
+    window.setTimeout(() => {
+      localDataReady.current = true;
+    }, 0);
   };
 
   const refreshDreams = async () => {
-    if (user) await loadFromApi();
+    loadLocalData();
   };
 
   // ─── Quote & Theme ─────────────────────────────────────────────────────────
 
   const setQuote = (newQuote: string) => {
     setQuoteState(newQuote);
-    if (user) {
-      apiCall('/profile', { method: 'PUT', body: JSON.stringify({ quote: newQuote }) })
-        .catch((e) => console.error('setQuote error:', e));
-    }
   };
 
   const toggleTheme = () => {
     const next = theme === 'light' ? 'dark' : 'light';
     setThemeState(next);
-    if (user) {
-      apiCall('/profile', { method: 'PUT', body: JSON.stringify({ theme: next }) })
-        .catch((e) => console.error('toggleTheme error:', e));
-    }
   };
 
   // ─── Dream CRUD ────────────────────────────────────────────────────────────
 
-  const addDream = async (dreamData: Omit<Dream, 'id' | 'done'>) => {
-    if (user) {
-      try {
-        const res = await apiCall('/dreams', {
-          method: 'POST',
-          body: JSON.stringify({ ...dreamData, done: false, bucketItems: dreamData.bucketItems ?? [] }),
-        });
-        const nd: Dream = res.dream;
-        setDreams((prev) => [...prev, nd]);
-        setDreamProgress((prev) => [...prev, { dreamId: nd.id, savedAmount: nd.saved_amount ?? 0 }]);
-      } catch (err) {
-        console.error('addDream error:', err);
-        toast.error('Failed to create dream');
-      }
-    } else {
-      // Гость — только в памяти, до перезагрузки страницы
-      const nd: Dream = {
-        ...dreamData,
-        id: `guest_${Date.now()}`,
-        done: false,
-        bucketItems: dreamData.bucketItems ?? [],
-      };
-      setDreams((prev) => [...prev, nd]);
-      setDreamProgress((prev) => [...prev, { dreamId: nd.id, savedAmount: nd.saved_amount ?? 0 }]);
-    }
+  const addDream = async (dreamData: Omit<Dream, 'id' | 'done'>): Promise<boolean> => {
+    const nd: Dream = {
+      ...dreamData,
+      id: crypto.randomUUID(),
+      user_id: user?.id,
+      done: false,
+      bucketItems: dreamData.bucketItems ?? [],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    setDreams((prev) => [...prev, nd]);
+    setDreamProgress((prev) => [...prev, { dreamId: nd.id, savedAmount: nd.saved_amount ?? 0 }]);
+    return true;
   };
 
   const updateDreamField = async (dreamId: string, field: string, value: any) => {
     setDreams((prev) => prev.map((d) => (d.id === dreamId ? { ...d, [field]: value } : d)));
-    if (user) {
-      apiCall(`/dreams/${dreamId}`, { method: 'PUT', body: JSON.stringify({ [field]: value }) })
-        .catch((e) => console.error(`updateDreamField(${field}) error:`, e));
-    }
   };
 
   const deleteDream = (dreamId: string) => {
@@ -213,10 +197,6 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setDreamProgress((prev) => prev.filter((p) => p.dreamId !== dreamId));
     setDreamNotes((prev) => prev.filter((n) => n.dreamId !== dreamId));
     setSavingsEvents((prev) => prev.filter((e) => e.dream_id !== dreamId));
-    if (user) {
-      apiCall(`/dreams/${dreamId}`, { method: 'DELETE' })
-        .catch((e) => console.error('deleteDream error:', e));
-    }
   };
 
   // ─── Completion ────────────────────────────────────────────────────────────
@@ -238,18 +218,9 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       setCompletionPhotos((prev) => [{ dreamId, photoUrl }, ...prev.filter((p) => p.dreamId !== dreamId)]);
     }
 
-    if (user) {
-      apiCall(`/dreams/${dreamId}`, { method: 'PUT', body: JSON.stringify(updates) })
-        .catch((e) => console.error('completeDream error:', e));
-    }
   };
 
   const clearAllCompleted = async () => {
-    if (user) {
-      await Promise.allSettled(
-        completedDreams.map((d) => apiCall(`/dreams/${d.id}`, { method: 'DELETE' }))
-      );
-    }
     setCompletedDreams([]);
     setCompletionPhotos([]);
     toast.success('All completed dreams cleared!');
@@ -259,10 +230,6 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const _saveBucketItems = (dreamId: string, items: BucketItem[]) => {
     setDreams((prev) => prev.map((d) => (d.id === dreamId ? { ...d, bucketItems: items } : d)));
-    if (user) {
-      apiCall(`/dreams/${dreamId}`, { method: 'PUT', body: JSON.stringify({ bucketItems: items }) })
-        .catch((e) => console.error('saveBucketItems error:', e));
-    }
   };
 
   const addCustomBucketItem = (dreamId: string, text: string) => {
@@ -297,10 +264,6 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       { dreamId, photoUrl },
       ...prev.filter((p) => p.dreamId !== dreamId),
     ]);
-    if (user) {
-      apiCall(`/dreams/${dreamId}`, { method: 'PUT', body: JSON.stringify({ completion_image_url: photoUrl }) })
-        .catch((e) => console.error('setCompletionPhoto error:', e));
-    }
   };
 
   // ─── Progress & Savings ────────────────────────────────────────────────────
@@ -313,38 +276,22 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         : [...prev, { dreamId, savedAmount: amount }];
     });
     setDreams((prev) => prev.map((d) => (d.id === dreamId ? { ...d, saved_amount: amount } : d)));
-    if (user) {
-      apiCall(`/dreams/${dreamId}`, { method: 'PUT', body: JSON.stringify({ saved_amount: amount }) })
-        .catch((e) => console.error('updateDreamProgress error:', e));
-    }
   };
 
   const freezeAmount = async (dreamId: string, amount: number, freezeUntil?: string) => {
     const current = dreams.find((d) => d.id === dreamId)?.saved_amount ?? 0;
     updateDreamProgress(dreamId, current + amount);
 
-    if (user) {
-      try {
-        const res = await apiCall(`/dreams/${dreamId}/savings`, {
-          method: 'POST',
-          body: JSON.stringify({ amount, type: 'freeze_deposit', freeze_until: freezeUntil }),
-        });
-        setSavingsEvents((prev) => [...prev, res.event]);
-      } catch (err) {
-        console.error('freezeAmount error:', err);
-      }
-    } else {
-      const ev: SavingsEvent = {
-        id: `ev_${Date.now()}`,
-        dream_id: dreamId,
-        user_id: 'guest',
-        amount,
-        type: 'freeze_deposit',
-        freeze_until: freezeUntil ?? null,
-        created_at: new Date().toISOString(),
-      };
-      setSavingsEvents((prev) => [...prev, ev]);
-    }
+    const ev: SavingsEvent = {
+      id: crypto.randomUUID(),
+      dream_id: dreamId,
+      user_id: user?.id ?? 'guest',
+      amount,
+      type: 'freeze_deposit',
+      freeze_until: freezeUntil ?? null,
+      created_at: new Date().toISOString(),
+    };
+    setSavingsEvents((prev) => [...prev, ev]);
   };
 
   const getSavingsEvents = (dreamId: string) =>
@@ -359,61 +306,36 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         ? prev.map((n) => (n.dreamId === dreamId ? { ...n, note } : n))
         : [...prev, { dreamId, note }];
     });
-    if (user) {
-      apiCall(`/dreams/${dreamId}`, { method: 'PUT', body: JSON.stringify({ note }) })
-        .catch((e) => console.error('updateDreamNote error:', e));
-    }
   };
 
   // ─── Image uploads ─────────────────────────────────────────────────────────
 
   const uploadCoverImage = async (dreamId: string, file: File) => {
-    if (user) {
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const b64 = reader.result as string;
       try {
-        const url = await uploadFile(file, dreamId, 'cover');
-        await updateDreamField(dreamId, 'cover_image_url', url);
-        await updateDreamField(dreamId, 'image', url);
-      } catch (err) {
-        console.error('uploadCoverImage error:', err);
-        toast.error('Failed to upload image');
+        const compressed = await compressImage(b64, 1200, 0.8);
+        updateDreamField(dreamId, 'image', compressed);
+      } catch {
+        updateDreamField(dreamId, 'image', b64);
       }
-    } else {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const b64 = reader.result as string;
-        try {
-          const compressed = await compressImage(b64, 1200, 0.8);
-          updateDreamField(dreamId, 'image', compressed);
-        } catch {
-          updateDreamField(dreamId, 'image', b64);
-        }
-      };
-      reader.readAsDataURL(file);
-    }
+    };
+    reader.readAsDataURL(file);
   };
 
   const uploadCompletionImage = async (dreamId: string, file: File) => {
-    if (user) {
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const b64 = reader.result as string;
       try {
-        const url = await uploadFile(file, dreamId, 'completion');
-        setCompletionPhoto(dreamId, url);
-      } catch (err) {
-        console.error('uploadCompletionImage error:', err);
-        toast.error('Failed to upload photo');
+        const compressed = await compressImage(b64, 600, 0.6);
+        setCompletionPhoto(dreamId, compressed);
+      } catch {
+        toast.error('Image too large. Please use a smaller photo.');
       }
-    } else {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const b64 = reader.result as string;
-        try {
-          const compressed = await compressImage(b64, 600, 0.6);
-          setCompletionPhoto(dreamId, compressed);
-        } catch {
-          toast.error('Image too large. Please use a smaller photo.');
-        }
-      };
-      reader.readAsDataURL(file);
-    }
+    };
+    reader.readAsDataURL(file);
   };
 
   // ─── Context value ─────────────────────────────────────────────────────────

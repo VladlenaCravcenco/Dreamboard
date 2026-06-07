@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { X } from 'lucide-react';
 import { useDreams } from '../context/DreamContext';
 import { Category } from '../types';
@@ -9,8 +9,17 @@ interface AddDreamModalProps {
   onClose: () => void;
 }
 
+const TAG_SUGGESTIONS: Record<Category, string[]> = {
+  travel: ['Asia', 'Europe', 'Beach', 'City Break', 'Culture', 'Road Trip'],
+  adventure: ['Hiking', 'Nature', 'Extreme', 'Wildlife', 'Water Sports', 'Mountains'],
+  personal: ['Skills', 'Creativity', 'Romance', 'Learning', 'Career', 'Family'],
+  'style-health': ['Wellness', 'Fashion', 'Beauty', 'Fitness', 'Self Care', 'Mindfulness'],
+  material: ['Tech', 'Vehicles', 'Accessories', 'Home', 'Gear', 'Collectibles'],
+};
+
 const AddDreamModal: React.FC<AddDreamModalProps> = ({ isOpen, onClose }) => {
-  const { addDream } = useDreams();
+  const { addDream, dreams, completedDreams } = useDreams();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     category: 'travel' as Category,
@@ -24,23 +33,36 @@ const AddDreamModal: React.FC<AddDreamModalProps> = ({ isOpen, onClose }) => {
     image: '',
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const tagOptions = useMemo(() => {
+    const existingTags = [...dreams, ...completedDreams]
+      .map((dream) => dream.tag)
+      .filter((tag): tag is string => Boolean(tag));
+
+    return Array.from(new Set([...existingTags, ...TAG_SUGGESTIONS[formData.category]]));
+  }, [completedDreams, dreams, formData.category]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
     
-    addDream({
+    const created = await addDream({
       category: formData.category,
       categoryLabel: formData.category.charAt(0).toUpperCase() + formData.category.slice(1),
-      tag: formData.tag,
-      title: formData.title,
+      tag: formData.tag.trim(),
+      title: formData.title.trim(),
       location: formData.location || undefined,
       season: formData.season || undefined,
       price: formData.price ? parseFloat(formData.price) : undefined,
       duration: formData.duration || undefined,
       difficulty: formData.difficulty || undefined,
-      description: formData.description,
+      description: formData.description.trim(),
       bucketItems: [],
       image: formData.image || 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800',
     });
+
+    setIsSubmitting(false);
+
+    if (!created) return;
 
     // Reset form
     setFormData({
@@ -128,8 +150,25 @@ const AddDreamModal: React.FC<AddDreamModalProps> = ({ isOpen, onClose }) => {
                   required
                   value={formData.tag}
                   onChange={(e) => setFormData({ ...formData, tag: e.target.value })}
+                  placeholder="e.g. Europe, Wellness, Tech"
                   className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {tagOptions.slice(0, 8).map((tag) => (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, tag })}
+                      className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+                        formData.tag === tag
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : 'border-border bg-muted hover:bg-muted/70'
+                      }`}
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -238,15 +277,17 @@ const AddDreamModal: React.FC<AddDreamModalProps> = ({ isOpen, onClose }) => {
               <button
                 type="button"
                 onClick={onClose}
+                disabled={isSubmitting}
                 className="flex-1 px-4 py-2 rounded-lg border border-border hover:bg-muted transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="flex-1 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                disabled={isSubmitting}
+                className="flex-1 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Add Dream
+                {isSubmitting ? 'Creating...' : 'Add Dream'}
               </button>
             </div>
           </form>

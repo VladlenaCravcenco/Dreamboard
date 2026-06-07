@@ -17,13 +17,14 @@ export const API_BASE_URL = `${supabaseUrl}/functions/v1/make-server-92c819cc`;
  */
 async function getAuthHeaders(): Promise<Record<string, string>> {
   const { data: { session } } = await supabase.auth.getSession();
-  
-  const token = session?.access_token ?? publicAnonKey;
-  
+
   return {
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`,
-    'apikey': publicAnonKey, // Supabase требует этот заголовок для Edge Functions
+    // The Edge Gateway still validates Authorization with the legacy JWT
+    // verifier, which rejects ES256 user tokens. Pass the legacy anon JWT
+    // through the gateway and verify the real user token inside the function.
+    'Authorization': `Bearer ${publicAnonKey}`,
+    ...(session?.access_token && { 'X-User-Authorization': `Bearer ${session.access_token}` }),
   };
 }
 
@@ -63,7 +64,8 @@ export async function apiCall(endpoint: string, options: RequestInit = {}) {
 
   if (!response.ok) {
     console.error(`[apiCall] Ошибка ${response.status} на ${endpoint}:`, data);
-    throw new Error(data.error || data.message || `Ошибка запроса (${response.status})`);
+    const message = data.error || data.message || `Ошибка запроса (${response.status})`;
+    throw new Error(`${message} [${response.status} ${endpoint}]`);
   }
 
   return data;
@@ -75,7 +77,6 @@ export async function apiCall(endpoint: string, options: RequestInit = {}) {
  */
 export async function uploadFile(file: File, dreamId: string, type: 'cover' | 'completion') {
   const { data: { session } } = await supabase.auth.getSession();
-  const token = session?.access_token ?? publicAnonKey;
 
   const formData = new FormData();
   formData.append('file', file);
@@ -85,8 +86,8 @@ export async function uploadFile(file: File, dreamId: string, type: 'cover' | 'c
   const response = await fetch(`${API_BASE_URL}/upload-image`, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${token}`,
-      'apikey': publicAnonKey,
+      'Authorization': `Bearer ${publicAnonKey}`,
+      ...(session?.access_token && { 'X-User-Authorization': `Bearer ${session.access_token}` }),
     },
     body: formData,
   });

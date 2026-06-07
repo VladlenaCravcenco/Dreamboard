@@ -41,8 +41,10 @@ const MainScreen: React.FC = () => {
   };
 
   // Handle template addition with animation
-  const handleAddTemplate = (template: Partial<Dream>) => {
-    addDream(template as Omit<Dream, 'id' | 'done'>);
+  const handleAddTemplate = async (template: Partial<Dream>) => {
+    const created = await addDream(template as Omit<Dream, 'id' | 'done'>);
+    if (!created) return;
+
     toast.success(`✨ "${template.title}" added to your dreams!`, {
       duration: 3000,
       position: 'bottom-center',

@@ -1,17 +1,28 @@
 /**
- * User-scoped KV store wrapper
- * Automatically adds user_id to all operations to work with RLS policies
+ * User-scoped KV store wrapper.
+ * The caller must include the user ID in every key or prefix.
  */
 
-import { createClient } from "jsr:@supabase/supabase-js@2.49.8";
+import { createClient } from "npm:@supabase/supabase-js@2.98.0";
 
 const client = () => createClient(
   Deno.env.get("SUPABASE_URL")!,
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
 );
 
-// Set stores a key-value pair with user_id in the database
+const assertUserScoped = (key: string, userId: string): void => {
+  if (!key.includes(`:${userId}`)) {
+    throw new Error(`KV key is not scoped to user ${userId}`);
+  }
+};
+
+const assertKeysUserScoped = (keys: string[], userId: string): void => {
+  keys.forEach((key) => assertUserScoped(key, userId));
+};
+
+// Set stores a user-scoped key-value pair.
 export const set = async (key: string, value: any, userId: string): Promise<void> => {
+  assertUserScoped(key, userId);
   const supabase = client();
   const { error } = await supabase.from("kv_store_92c819cc").upsert({
     key,
@@ -25,6 +36,7 @@ export const set = async (key: string, value: any, userId: string): Promise<void
 
 // Get retrieves a key-value pair for a specific user from the database
 export const get = async (key: string, userId: string): Promise<any> => {
+  assertUserScoped(key, userId);
   const supabase = client();
   const { data, error } = await supabase
     .from("kv_store_92c819cc")
@@ -41,6 +53,7 @@ export const get = async (key: string, userId: string): Promise<any> => {
 
 // Delete deletes a key-value pair for a specific user from the database
 export const del = async (key: string, userId: string): Promise<void> => {
+  assertUserScoped(key, userId);
   const supabase = client();
   const { error } = await supabase
     .from("kv_store_92c819cc")
@@ -53,8 +66,9 @@ export const del = async (key: string, userId: string): Promise<void> => {
   }
 };
 
-// Sets multiple key-value pairs with user_id in the database
+// Sets multiple user-scoped key-value pairs
 export const mset = async (keys: string[], values: any[], userId: string): Promise<void> => {
+  assertKeysUserScoped(keys, userId);
   const supabase = client();
   const { error } = await supabase
     .from("kv_store_92c819cc")
@@ -71,6 +85,7 @@ export const mset = async (keys: string[], values: any[], userId: string): Promi
 
 // Gets multiple key-value pairs for a specific user from the database
 export const mget = async (keys: string[], userId: string): Promise<any[]> => {
+  assertKeysUserScoped(keys, userId);
   const supabase = client();
   const { data, error } = await supabase
     .from("kv_store_92c819cc")
@@ -86,6 +101,7 @@ export const mget = async (keys: string[], userId: string): Promise<any[]> => {
 
 // Deletes multiple key-value pairs for a specific user from the database
 export const mdel = async (keys: string[], userId: string): Promise<void> => {
+  assertKeysUserScoped(keys, userId);
   const supabase = client();
   const { error } = await supabase
     .from("kv_store_92c819cc")
@@ -100,6 +116,7 @@ export const mdel = async (keys: string[], userId: string): Promise<void> => {
 
 // Search for key-value pairs by prefix for a specific user
 export const getByPrefix = async (prefix: string, userId: string): Promise<any[]> => {
+  assertUserScoped(prefix, userId);
   const supabase = client();
   const { data, error } = await supabase
     .from("kv_store_92c819cc")
