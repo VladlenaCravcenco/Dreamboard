@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router';
 import { Moon, Sun, Edit2, Check, LogOut, User, CheckCircle, BarChart3, CreditCard, Bell } from 'lucide-react';
 import { useDreams } from '../context/DreamContext';
@@ -13,6 +13,9 @@ import {
 } from './ui/dropdown-menu';
 import { LofiPlayer } from './LofiPlayer';
 
+const SWIPE_ROUTES = ['/', '/completed', '/stats', '/card', '/reminders'];
+const SWIPE_THRESHOLD = 60;
+
 const Layout: React.FC = () => {
   const { quote, setQuote, theme, toggleTheme, refreshDreams } = useDreams();
   const { user, signOut } = useAuth();
@@ -20,6 +23,7 @@ const Layout: React.FC = () => {
   const [editedQuote, setEditedQuote] = useState(quote);
   const navigate = useNavigate();
   const location = useLocation();
+  const swipeStart = useRef<{ x: number; y: number; time: number } | null>(null);
 
   const handleSaveQuote = () => {
     setQuote(editedQuote);
@@ -45,8 +49,48 @@ const Layout: React.FC = () => {
     return location.pathname.startsWith(path);
   };
 
+  const handleTouchStart = (event: React.TouchEvent) => {
+    const target = event.target as HTMLElement;
+    if (target.closest('input, textarea, select, button, [data-swipe-nav-ignore]')) {
+      swipeStart.current = null;
+      return;
+    }
+
+    const touch = event.touches[0];
+    swipeStart.current = { x: touch.clientX, y: touch.clientY, time: Date.now() };
+  };
+
+  const handleTouchEnd = (event: React.TouchEvent) => {
+    if (!swipeStart.current) return;
+
+    const touch = event.changedTouches[0];
+    const deltaX = touch.clientX - swipeStart.current.x;
+    const deltaY = touch.clientY - swipeStart.current.y;
+    const duration = Date.now() - swipeStart.current.time;
+    swipeStart.current = null;
+
+    if (
+      duration > 700 ||
+      Math.abs(deltaX) < SWIPE_THRESHOLD ||
+      Math.abs(deltaX) < Math.abs(deltaY) * 1.4
+    ) {
+      return;
+    }
+
+    const currentIndex = SWIPE_ROUTES.indexOf(location.pathname);
+    if (currentIndex === -1) return;
+
+    const nextIndex = deltaX < 0 ? currentIndex + 1 : currentIndex - 1;
+    const nextRoute = SWIPE_ROUTES[nextIndex];
+    if (nextRoute) navigate(nextRoute);
+  };
+
   return (
-    <div className="min-h-screen bg-background overflow-x-hidden">
+    <div
+      className="app-shell min-h-screen bg-background overflow-x-hidden"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
       {/* Sticky Top Bar */}
       <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
         <div className="max-w-[1600px] mx-auto px-4 md:px-6 py-3 md:py-4">

@@ -324,7 +324,7 @@ const DreamTemplates: React.FC<DreamTemplatesProps> = ({ onAddTemplate }) => {
 
       {/* Horizontal Scroll */}
       <div className="relative -mx-4 md:mx-0">
-        <div className="overflow-x-auto scrollbar-hide px-4 md:px-0">
+        <div data-swipe-nav-ignore className="overflow-x-auto scrollbar-hide px-4 md:px-0">
           <div 
             className={`flex gap-3 md:gap-4 pb-2 transition-all duration-300 ${
               isVisible 
