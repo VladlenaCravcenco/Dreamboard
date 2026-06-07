@@ -12,6 +12,7 @@ export default function AuthScreen() {
   const [name, setName] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [pendingEmail, setPendingEmail] = useState<string | null>(null); // ← экран "проверьте почту"
+  const [resending, setResending] = useState(false);
   const [errors, setErrors] = useState<{
     name?: string;
     email?: string;
@@ -19,7 +20,7 @@ export default function AuthScreen() {
     banner?: string;
   }>({});
 
-  const { user, loading, signIn, signUp, resetPassword } = useAuth();
+  const { user, loading, signIn, signUp, resendConfirmation, resetPassword } = useAuth();
   const navigate = useNavigate();
 
   if (!loading && user) return <Navigate to="/" replace />;
@@ -65,6 +66,25 @@ export default function AuthScreen() {
               <p className="text-xs" style={{ color: 'rgba(0,0,0,0.3)' }}>
                 Не пришло? Проверьте папку «Спам».
               </p>
+              <button
+                type="button"
+                disabled={resending}
+                onClick={async () => {
+                  setResending(true);
+                  try {
+                    await resendConfirmation(pendingEmail);
+                    toast.success('Новое письмо с подтверждением отправлено');
+                  } catch (error: any) {
+                    toast.error(error?.message ?? 'Не удалось отправить письмо повторно');
+                  } finally {
+                    setResending(false);
+                  }
+                }}
+                className="text-sm hover:underline disabled:opacity-50"
+                style={{ color: '#c9a84c' }}
+              >
+                {resending ? 'Отправляем…' : 'Отправить письмо повторно'}
+              </button>
               <button
                 type="button"
                 onClick={() => {

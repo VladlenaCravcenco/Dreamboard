@@ -14,6 +14,7 @@ export interface AuthContextType {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, name: string) => Promise<{ needsConfirmation: boolean }>;
+  resendConfirmation: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updateName: (name: string) => Promise<void>;
@@ -26,6 +27,7 @@ export const AuthContext = createContext<AuthContextType>({
   loading: true,
   signIn: async () => {},
   signUp: async () => ({ needsConfirmation: false }),
+  resendConfirmation: async () => {},
   signOut: async () => {},
   resetPassword: async () => {},
   updateName: async () => {},
@@ -106,8 +108,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       password,
       options: {
         data: { name },
-        // После подтверждения email — Supabase редиректит сюда
-        emailRedirectTo: `${window.location.origin}/`,
       },
     });
 
@@ -117,17 +117,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (data.session) {
       if (data.user) setUser(toAuthUser(data.user));
 
-      // Создаём профиль пользователя
-      apiCall('/profile', {
-        method: 'PUT',
-        body: JSON.stringify({ quote: '', theme: 'light' }),
-      }).catch(console.error);
-
       return { needsConfirmation: false };
     }
 
     // session === null означает: письмо отправлено, ждём подтверждения
     return { needsConfirmation: true };
+  };
+
+  const resendConfirmation = async (email: string) => {
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+    });
+    if (error) throw error;
   };
 
   // ─── Выход ────────────────────────────────────────────────────────────────
@@ -140,9 +142,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // ─── Сброс пароля ─────────────────────────────────────────────────────────
 
   const resetPassword = async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth`,
-    });
+    const { error } = await supabase.auth.resetPasswordForEmail(email);
     if (error) throw error;
   };
 
@@ -170,7 +170,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   return (
     <AuthContext.Provider value={{
       user, loading,
-      signIn, signUp, signOut,
+      signIn, signUp, resendConfirmation, signOut,
       resetPassword, updateName, changePassword, deleteAccount,
     }}>
       {children}
