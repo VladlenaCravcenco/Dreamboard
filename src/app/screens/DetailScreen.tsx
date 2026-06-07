@@ -287,9 +287,10 @@ const DetailScreen: React.FC = () => {
     toast.success('Card linked successfully!');
   };
 
-  const handleDeleteDream = () => {
+  const handleDeleteDream = async () => {
     if (deleteConfirmText !== dream?.title) return;
-    deleteDream(id!);
+    const deleted = await deleteDream(id!);
+    if (!deleted) return;
     toast.success('Dream deleted');
     navigate('/');
   };

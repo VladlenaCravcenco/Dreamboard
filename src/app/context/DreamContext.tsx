@@ -44,7 +44,7 @@ interface DreamContextType {
   getSavingsEvents: (dreamId: string) => SavingsEvent[];
   refreshDreams: () => Promise<void>;
   clearAllCompleted: () => Promise<void>;
-  deleteDream: (dreamId: string) => void;
+  deleteDream: (dreamId: string) => Promise<boolean>;
 }
 
 const DEFAULT_QUOTE = 'The future belongs to those who believe in the beauty of their dreams.';
@@ -210,7 +210,7 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }, 0);
 
     if (user) {
-      syncFromSupabase(data).catch((error) => {
+      syncFromSupabase().catch((error) => {
         console.error('Dream sync failed; continuing with local data:', error);
         setSyncError(error instanceof Error ? error.message : 'Dream sync failed');
       });
@@ -221,25 +221,12 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     loadLocalData();
   };
 
-  const syncFromSupabase = async (localData: LocalDreamboardData | null) => {
+  const syncFromSupabase = async () => {
     if (!user) return;
     setSyncing(true);
     setSyncError(null);
 
     try {
-      const localDreams = [
-        ...(localData?.dreams ?? []),
-        ...(localData?.completedDreams ?? []),
-      ];
-
-      if (localDreams.length > 0) {
-        const { error: uploadError } = await supabase
-          .from('dreams')
-          .upsert(localDreams.map((dream) => toDatabaseDream(dream, user.id)));
-
-        if (uploadError) throw uploadError;
-      }
-
       const { data, error } = await supabase
         .from('dreams')
         .select('*')
@@ -312,15 +299,32 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }));
   };
 
-  const deleteDream = (dreamId: string) => {
+  const deleteDream = async (dreamId: string): Promise<boolean> => {
+    if (user) {
+      const { data, error } = await supabase
+        .from('dreams')
+        .delete()
+        .eq('id', dreamId)
+        .eq('user_id', user.id)
+        .select('id');
+
+      if (error) {
+        console.error('Failed to delete dream:', error);
+        toast.error(`Could not delete dream: ${error.message}`);
+        return false;
+      }
+
+      if (!data || data.length === 0) {
+        toast.error('Could not delete dream from the database. Check dream ownership and RLS policies.');
+        return false;
+      }
+    }
+
     setDreams((prev) => prev.filter((d) => d.id !== dreamId));
     setDreamProgress((prev) => prev.filter((p) => p.dreamId !== dreamId));
     setDreamNotes((prev) => prev.filter((n) => n.dreamId !== dreamId));
     setSavingsEvents((prev) => prev.filter((e) => e.dream_id !== dreamId));
-    if (user) {
-      supabase.from('dreams').delete().eq('id', dreamId)
-        .then(({ error }) => error && console.error('Failed to sync dream deletion:', error));
-    }
+    return true;
   };
 
   // ─── Completion ────────────────────────────────────────────────────────────
