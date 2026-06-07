@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dreamboard-v2';
+const CACHE_NAME = 'dreamboard-v3';
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -47,24 +47,32 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  event.respondWith(
-    caches.match(event.request)
-      .then((cached) => {
-        if (cached) return cached;
+  const isAppCode = ['script', 'style'].includes(event.request.destination);
 
-        return fetch(event.request).then((response) => {
-          const shouldCache =
-            response.ok &&
-            ['script', 'style', 'image', 'font'].includes(event.request.destination);
-
-          if (shouldCache) {
+  if (isAppCode) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response.ok) {
             const copy = response.clone();
             caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
           }
-
           return response;
-        });
-      })
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  event.respondWith(
+    caches.match(event.request)
+      .then((cached) => cached ?? fetch(event.request).then((response) => {
+        if (response.ok && ['image', 'font'].includes(event.request.destination)) {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+        }
+        return response;
+      }))
   );
 });
 

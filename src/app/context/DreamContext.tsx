@@ -24,6 +24,8 @@ interface DreamContextType {
   quote: string;
   theme: 'light' | 'dark';
   loading: boolean;
+  syncing: boolean;
+  syncError: string | null;
   setQuote: (quote: string) => void;
   toggleTheme: () => void;
   updateDreamProgress: (dreamId: string, amount: number) => void;
@@ -143,6 +145,8 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [quote, setQuoteState] = useState(DEFAULT_QUOTE);
   const [theme, setThemeState] = useState<'light' | 'dark'>('light');
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
   const localDataReady = useRef(false);
 
   useEffect(() => {
@@ -208,6 +212,7 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     if (user) {
       syncFromSupabase(data).catch((error) => {
         console.error('Dream sync failed; continuing with local data:', error);
+        setSyncError(error instanceof Error ? error.message : 'Dream sync failed');
       });
     }
   };
@@ -218,40 +223,46 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const syncFromSupabase = async (localData: LocalDreamboardData | null) => {
     if (!user) return;
+    setSyncing(true);
+    setSyncError(null);
 
-    const localDreams = [
-      ...(localData?.dreams ?? []),
-      ...(localData?.completedDreams ?? []),
-    ];
+    try {
+      const localDreams = [
+        ...(localData?.dreams ?? []),
+        ...(localData?.completedDreams ?? []),
+      ];
 
-    if (localDreams.length > 0) {
-      const { error: uploadError } = await supabase
+      if (localDreams.length > 0) {
+        const { error: uploadError } = await supabase
+          .from('dreams')
+          .upsert(localDreams.map((dream) => toDatabaseDream(dream, user.id)));
+
+        if (uploadError) throw uploadError;
+      }
+
+      const { data, error } = await supabase
         .from('dreams')
-        .upsert(localDreams.map((dream) => toDatabaseDream(dream, user.id)));
+        .select('*')
+        .order('created_at', { ascending: true });
 
-      if (uploadError) throw uploadError;
+      if (error) throw error;
+
+      const all = (data ?? []).map(fromDatabaseDream);
+      const active = all.filter((dream) => !dream.done);
+      const done = all.filter((dream) => dream.done);
+
+      setDreams(active);
+      setCompletedDreams(done.map((dream) => ({ ...dream, completedAt: dream.completed_at ?? undefined })));
+      setDreamProgress(all.map((dream) => ({ dreamId: dream.id, savedAmount: dream.saved_amount ?? 0 })));
+      setDreamNotes(all.filter((dream) => dream.note).map((dream) => ({ dreamId: dream.id, note: dream.note! })));
+      setCompletionPhotos(
+        done
+          .filter((dream) => dream.completion_image_url)
+          .map((dream) => ({ dreamId: dream.id, photoUrl: dream.completion_image_url! }))
+      );
+    } finally {
+      setSyncing(false);
     }
-
-    const { data, error } = await supabase
-      .from('dreams')
-      .select('*')
-      .order('created_at', { ascending: true });
-
-    if (error) throw error;
-
-    const all = (data ?? []).map(fromDatabaseDream);
-    const active = all.filter((dream) => !dream.done);
-    const done = all.filter((dream) => dream.done);
-
-    setDreams(active);
-    setCompletedDreams(done.map((dream) => ({ ...dream, completedAt: dream.completed_at ?? undefined })));
-    setDreamProgress(all.map((dream) => ({ dreamId: dream.id, savedAmount: dream.saved_amount ?? 0 })));
-    setDreamNotes(all.filter((dream) => dream.note).map((dream) => ({ dreamId: dream.id, note: dream.note! })));
-    setCompletionPhotos(
-      done
-        .filter((dream) => dream.completion_image_url)
-        .map((dream) => ({ dreamId: dream.id, photoUrl: dream.completion_image_url! }))
-    );
   };
 
   const syncDream = async (dream: Dream) => {
@@ -485,6 +496,8 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         quote,
         theme,
         loading,
+        syncing,
+        syncError,
         setQuote,
         toggleTheme,
         updateDreamProgress,

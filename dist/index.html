@@ -23,8 +23,8 @@
   <!-- Inline SVG favicon as fallback -->
   <link rel="icon" href="data:image/svg+xml,%3Csvg width='32' height='32' viewBox='0 0 32 32' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='32' height='32' rx='7' fill='%23F7F3EC'/%3E%3Cpath d='M 8 8 L 8 24 L 14 24 C 18 24 21 21 21 16 C 21 11 18 8 14 8 Z M 11 11 L 14 11 C 16 11 18 13 18 16 C 18 19 16 21 14 21 L 11 21 Z' fill='%231C1814'/%3E%3C/svg%3E">
   
-  <script type="module" crossorigin src="/assets/index-hFRXtBEQ.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-BsY3GX4y.css">
+  <script type="module" crossorigin src="/assets/index-pmEyUahC.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-2YF7rnFY.css">
 </head>
 <body>
   <div id="root"></div>
@@ -32,10 +32,17 @@
   <!-- Register Service Worker -->
   <script>
     if ('serviceWorker' in navigator && window.location.protocol === 'https:') {
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (sessionStorage.getItem('dreamboard-sw-reloaded')) return;
+        sessionStorage.setItem('dreamboard-sw-reloaded', 'true');
+        window.location.reload();
+      });
+
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js')
           .then(registration => {
             console.log('SW registered:', registration);
+            registration.update();
           })
           .catch(error => {
             console.log('SW registration failed:', error);

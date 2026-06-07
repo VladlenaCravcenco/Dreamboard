@@ -18,7 +18,7 @@ const categories: { value: Category | 'all'; label: string; emoji: string }[] = 
 ];
 
 const MainScreen: React.FC = () => {
-  const { dreams, dreamProgress, completedDreams, addDream, loading } = useDreams();
+  const { dreams, dreamProgress, completedDreams, addDream, loading, syncing, syncError, refreshDreams } = useDreams();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<Category | 'all'>('all');
@@ -54,6 +54,23 @@ const MainScreen: React.FC = () => {
   return (
     <div className="max-w-[1600px] mx-auto px-4 md:px-6 py-6 md:py-8 overflow-x-hidden">
       {/* Search Bar */}
+      {(syncing || syncError) && (
+        <div className={`mb-4 rounded-lg border px-4 py-3 text-sm ${
+          syncError
+            ? 'border-destructive/30 bg-destructive/10 text-destructive'
+            : 'border-border bg-muted text-muted-foreground'
+        }`}>
+          {syncError ? (
+            <div className="flex items-center justify-between gap-3">
+              <span>Sync error: {syncError}</span>
+              <button onClick={refreshDreams} className="font-medium underline">Retry</button>
+            </div>
+          ) : (
+            'Syncing dreams…'
+          )}
+        </div>
+      )}
+
       <div className="mb-4 md:mb-6 relative">
         <Search className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 w-4 md:w-5 h-4 md:h-5 text-muted-foreground" />
         <input
