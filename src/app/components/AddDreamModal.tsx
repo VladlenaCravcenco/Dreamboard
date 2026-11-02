@@ -1,3 +1,5 @@
+import { supabase } from '../lib/supabase';
+import { giftUrl } from '../lib/giftDetails';
 import { useId, useState } from 'react';
 import { useDreams } from '../context/DreamContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
@@ -34,6 +36,9 @@ export default function AddDreamModal({ isOpen, onClose }: { isOpen: boolean; on
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState<Category>('personal');
   const [description, setDescription] = useState('');
+  const [productUrl,setProductUrl] = useState('');
+  const [importing,setImporting] = useState(false);
+  const [preview,setPreview] = useState<{title:string;image:string}|null>(null);
   const [price, setPrice] = useState('');
   const [photo, setPhoto] = useState('');
   const [busy, setBusy] = useState(false);
@@ -41,17 +46,24 @@ export default function AddDreamModal({ isOpen, onClose }: { isOpen: boolean; on
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     if (!title.trim()) return;
+    if (productUrl && !giftUrl(productUrl)) { toast.error('Проверьте ссылку на товар'); return; }
     setBusy(true);
     try {
-      const created = await addDream({ title: title.trim(), category, categoryLabel: categoryLabels[category], description: description.trim(), price: price ? Number(price) : undefined, image: photo || '/dream-placeholder.svg', bucketItems: [], tag: '' });
-      if (created) { setTitle(''); setCategory('personal'); setDescription(''); setPrice(''); setPhoto(''); onClose(); }
+      const created = await addDream({ title: title.trim(), category, categoryLabel: categoryLabels[category], product_url: productUrl.trim(), description: description.trim(), price: price ? Number(price) : undefined, image: photo || '/dream-placeholder.svg', bucketItems: [], tag: '' });
+      if (created) { setTitle(''); setCategory('personal'); setDescription(''); setPrice(''); setPhoto(''); setProductUrl(''); setPreview(null); onClose(); }
     } finally { setBusy(false); }
   }
-  return <Dialog open={isOpen} onOpenChange={(open) => { if (!open && !busy) onClose(); }}>
+  return <Dialog open={isOpen} onOpenChange={(open) => { if (!open && !busy && !importing) onClose(); }}>
     <DialogContent className="dream-create-dialog max-h-[90dvh] overflow-y-auto sm:max-w-lg">
       <DialogHeader className="text-left pr-6 gap-2"><DialogTitle>Новая мечта</DialogTitle><DialogDescription>Что хочется осуществить?</DialogDescription></DialogHeader>
       <form onSubmit={submit} className="dream-create-form">
         <label className="dream-create-field"><span>О чём вы мечтаете?</span><input autoFocus required maxLength={160} value={title} onChange={e => setTitle(e.target.value)} placeholder={hints.title} className={fieldClass}/></label>
+        <details className="dream-extra"><summary>Добавить по ссылке на товар</summary><div className="grid gap-3 mt-3">
+          <input aria-label="Ссылка на товар" disabled={importing||busy} type="url" maxLength={2000} value={productUrl} onChange={e=>{setProductUrl(e.target.value);setPreview(null);}} placeholder="https://магазин/товар" className={fieldClass}/>
+          <button type="button" disabled={importing||busy||!productUrl.trim()} className={primaryClass} onClick={async()=>{setImporting(true);setPreview(null);try{const {data:{session}}=await supabase.auth.getSession();if(!session)throw new Error('Войдите в аккаунт');const response=await fetch('/api/product-preview',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({url:productUrl.trim()}),signal:AbortSignal.timeout(25000)});const result=await response.json().catch(()=>({error:'Автозаполнение доступно после публикации на Vercel. Можно заполнить вручную.'}));if(!response.ok||result.error)throw new Error(result.error||'Не удалось получить превью');setPreview(result);}catch(e){toast.error((e as Error).message);}finally{setImporting(false);}}}>{importing?'Получаем название и фото…':'Найти название и фото'}</button>
+          {preview&&<div className="border border-border rounded-xl p-3 space-y-3">{preview.image&&<img src={preview.image} alt="Фото из магазина" referrerPolicy="no-referrer" className="h-24 w-full object-contain"/>}<p className="text-sm">{preview.title||'Название не найдено'}</p><button type="button" className={primaryClass} onClick={()=>{if(preview.title)setTitle(preview.title);if(preview.image)setPhoto(preview.image);setCategory('material');setPreview(null);}}>Использовать название и фото</button></div>}
+          <p className="text-xs text-muted-foreground">Ссылка сохранится даже без автозаполнения. Не все магазины разрешают получать фото.</p>
+        </div></details>
         <fieldset className="dream-category-field">
           <legend>Категория</legend>
           <div className="dream-category-options">
@@ -70,7 +82,7 @@ export default function AddDreamModal({ isOpen, onClose }: { isOpen: boolean; on
           <label className="dream-create-field"><span>{hints.question}</span><textarea value={description} onChange={e => setDescription(e.target.value)} placeholder={hints.description} className={fieldClass} rows={3}/></label>
           <label className="dream-create-field"><span>Бюджет, $</span><input type="number" min="0" max="9999999999" step="0.01" value={price} onChange={e => setPrice(e.target.value)} placeholder="Можно оставить пустым" className={fieldClass}/></label>
         </div></details>
-        <button disabled={busy || !title.trim()} className={`${primaryClass} w-full`}>{busy ? 'Сохраняем…' : 'Добавить мечту'}</button>
+        <button disabled={busy || importing || !title.trim()} className={`${primaryClass} w-full`}>{busy ? 'Сохраняем…' : 'Добавить мечту'}</button>
       </form>
     </DialogContent>
   </Dialog>;

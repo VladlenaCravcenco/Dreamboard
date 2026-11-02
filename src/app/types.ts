@@ -24,6 +24,7 @@ export interface Dream {
   description: string;
   bucketItems: BucketItem[];
   image: string;
+  product_url?: string;
   done: boolean;
   note?: string;
   // Supabase fields

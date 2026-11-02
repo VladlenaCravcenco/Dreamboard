@@ -1,3 +1,4 @@
+import GiftDetailsEditor from '../components/GiftDetailsEditor';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { Plus, Trash2, ArrowLeft, Check } from '../components/PixelIcons';
@@ -46,6 +47,7 @@ export default function DetailScreen() {
         </section>
       </div>
       <div className="space-y-5">
+        <GiftDetailsEditor key={dream.id} dreamId={dream.id}/>
         <section className={panel}>
           <div className="flex justify-between items-center"><h2 className="text-xl">Шаги к мечте</h2><span className="text-sm text-muted-foreground">{checked} / {dream.bucketItems.length}</span></div>
           {!dream.bucketItems.length && <p className="text-sm text-muted-foreground">Добавьте первый маленький шаг. Или оставьте мечту без плана — это тоже нормально.</p>}
@@ -70,7 +72,7 @@ export default function DetailScreen() {
     <Dialog open={completing} onOpenChange={open => { if (!busy) setCompleting(open); }}><DialogContent><DialogHeader><DialogTitle>Сохранить воспоминание</DialogTitle><DialogDescription>«{dream.title}» появится в воспоминаниях. Можно добавить фото момента или оставить обложку.</DialogDescription></DialogHeader>
       <img src={photo || dream.image || '/dream-placeholder.svg'} alt="Фото воспоминания" className="w-full h-48 object-cover rounded-xl"/>
       <label className="text-sm space-y-2"><span>Фото момента · необязательно</span><input type="file" accept="image/*" disabled={busy} onChange={e => void upload(e.target.files?.[0], true)} className={fieldClass}/></label>
-      <button disabled={busy} onClick={() => { completeDream(id!, photo || dream.image); navigate('/completed'); }} className={primaryClass}>{busy ? 'Готовим фото…' : 'Сохранить в воспоминания'}</button>
+      <button disabled={busy} onClick={() => { completeDream(id!, photo || dream.image); navigate('/completed', { state: { celebrateDream: id } }); }} className={primaryClass}>{busy ? 'Готовим фото…' : 'Сохранить в воспоминания'}</button>
     </DialogContent></Dialog>
     <Dialog open={deleting} onOpenChange={setDeleting}><DialogContent><DialogHeader><DialogTitle>Удалить «{dream.title}»?</DialogTitle><DialogDescription>Мечта, её шаги и заметки будут удалены. Это действие нельзя отменить.</DialogDescription></DialogHeader><div className="flex gap-3"><button className={fieldClass} onClick={() => setDeleting(false)}>Оставить</button><button disabled={busy} className={`${primaryClass} bg-destructive`} onClick={async () => { setBusy(true); try { if (await deleteDream(id!)) navigate('/'); } finally { setBusy(false); } }}>{busy ? 'Удаляем…' : 'Удалить'}</button></div></DialogContent></Dialog>
   </main>;

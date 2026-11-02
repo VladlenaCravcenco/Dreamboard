@@ -1,10 +1,19 @@
-import React, { useState } from 'react';
+import { useLocation, useNavigate } from 'react-router';
+import PixelCelebration from '../components/PixelCelebration';
+import React, { useEffect, useState } from 'react';
 import { useDreams } from '../context/DreamContext';
-import { motion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
 import CompletedDreamModal from '../components/CompletedDreamModal';
 import { CompletedDream } from '../types';
 
 const CompletedScreen: React.FC = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const reduceMotion = useReducedMotion();
+  const [celebratingId] = useState<string | null>(location.state?.celebrateDream ?? null);
+  useEffect(() => {
+    if (location.state?.celebrateDream) navigate(location.pathname, { replace: true, state: null });
+  }, [location.state, location.pathname, navigate]);
   const { completedDreams, dreamProgress, dreamNotes, completionPhotos } = useDreams();
   const [selectedDream, setSelectedDream] = useState<CompletedDream | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -21,6 +30,7 @@ const CompletedScreen: React.FC = () => {
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-8 overflow-x-hidden">
+      {celebratingId && <PixelCelebration />}
       {/* Header */}
       <div className="mb-8">
         <h1
@@ -49,13 +59,13 @@ const CompletedScreen: React.FC = () => {
               <motion.button
                 aria-label={`Открыть воспоминание: ${completed.title}`}
                 key={uniqueKey}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
+                initial={reduceMotion ? false : { opacity: 0, y: 16, scale: completed.id === celebratingId ? 0.94 : 1 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: reduceMotion ? 0 : 0.35, delay: reduceMotion ? 0 : Math.min(index, 6) * 0.04 }}
                 className="relative aspect-square rounded-3xl overflow-hidden group cursor-pointer"
                 onClick={() => handleDreamClick(completed)}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                whileHover={reduceMotion ? undefined : { scale: 1.02 }}
+                whileTap={reduceMotion ? undefined : { scale: 0.98 }}
               >
                 {photoUrl ? (
                   <img

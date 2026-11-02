@@ -1,3 +1,4 @@
+import GiftPreferencesEditor from '../components/GiftPreferencesEditor';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { useAuth } from '../context/AuthContext';
@@ -42,11 +43,12 @@ export default function ShareScreen() {
         <p className="text-xs text-muted-foreground">Любой человек с этой ссылкой после входа сможет увидеть выбранные желания и сохранить ваш список. Поиск по именам и аккаунтам отсутствует.</p>
         <label className="flex gap-3 text-sm"><input type="checkbox" checked={future} onChange={e=>setFuture(e.target.checked)}/>Все текущие и будущие желания</label>
         {!future && <fieldset className="grid gap-3"><legend className="text-sm mb-3">Какими желаниями поделиться?</legend>{dreams.length===0 ? <p className="text-xs text-muted-foreground">Сначала добавьте мечту на доску.</p> : dreams.map(d=><label className="flex gap-3 text-sm" key={d.id}><input type="checkbox" checked={ids.includes(d.id)} onChange={e=>setIds(e.target.checked ? [...ids,d.id] : ids.filter(id=>id!==d.id))}/>{d.title}</label>)}</fieldset>}
-        <p className="text-xs text-muted-foreground">Видны название, фото, описание и бюджет. Личные заметки, шаги и накопления остаются только у вас. Сбывшиеся мечты исчезают из списка друзей.</p>
+        <p className="text-xs text-muted-foreground">Видны название, фото, описание, бюджет и детали подарка. Личные заметки, шаги и накопления остаются только у вас. Сбывшиеся мечты исчезают из списка друзей.</p>
         <button className={primaryClass} disabled={busy||!name.trim()||!dirty}>{busy?'Сохраняем…':'Сохранить настройки'}</button>
       </form>
+      {settings && <GiftPreferencesEditor initial={settings.preferences} onSave={preferences=>setSettings(current=>current?{...current,preferences}:current)}/>}
       {settings?.enabled && <section className="rounded-2xl border border-border p-5 space-y-3"><label className="dream-create-field">Ваша личная ссылка<input readOnly value={url} className={fieldClass} onFocus={e=>e.target.select()}/></label><button className={primaryClass} disabled={busy||dirty} onClick={async()=>{try{await navigator.clipboard.writeText(url);toast.success('Ссылка скопирована');}catch{toast.error('Выделите и скопируйте ссылку из поля выше');}}}>Скопировать ссылку</button>{dirty&&<p className="text-xs">Сначала сохраните изменения.</p>}<Link to={invitePath(settings.token)} className="block text-sm underline">Посмотреть глазами друга</Link></section>}
-      {settings && <div className="text-sm space-y-3">{!rotate ? <button className="underline" onClick={()=>setRotate(true)}>Заменить ссылку и отозвать старый доступ</button> : <><p>Старая ссылка перестанет работать. Друзьям понадобится новая ссылка, их сохранённые отметки для этого списка будут сброшены.</p><button className={primaryClass} disabled={busy||dirty} onClick={async()=>{setBusy(true);try{setSettings(await wishes<ShareSettings>('wish_rotate'));setRotate(false);toast.success('Ссылка заменена');}catch(e){toast.error((e as Error).message);}finally{setBusy(false);}}}>Заменить ссылку</button><button className="ml-4" onClick={()=>setRotate(false)}>Отмена</button></>}</div>}
+      {settings && <div className="text-sm space-y-3">{!rotate ? <button className="underline" onClick={()=>setRotate(true)}>Заменить ссылку и отозвать старый доступ</button> : <><p>Старая ссылка перестанет работать. Друзьям понадобится новая ссылка, их отметки, заметки и брони для этого списка будут сброшены.</p><button className={primaryClass} disabled={busy||dirty} onClick={async()=>{setBusy(true);try{setSettings(await wishes<ShareSettings>('wish_rotate'));setRotate(false);toast.success('Ссылка заменена');}catch(e){toast.error((e as Error).message);}finally{setBusy(false);}}}>Заменить ссылку</button><button className="ml-4" onClick={()=>setRotate(false)}>Отмена</button></>}</div>}
     </>}
   </main>;
 }
