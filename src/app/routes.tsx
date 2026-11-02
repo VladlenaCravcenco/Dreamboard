@@ -1,3 +1,6 @@
+import FriendsScreen from './screens/FriendsScreen';
+import ShareScreen from './screens/ShareScreen';
+import FriendBoardScreen from './screens/FriendBoardScreen';
 import ResetPasswordScreen from './screens/ResetPasswordScreen';
 import { features } from './config/features';
 import { createBrowserRouter, Navigate } from 'react-router';
@@ -24,6 +27,7 @@ export const router = createBrowserRouter([
         Component: AuthScreen,
       },
       { path: '/reset-password', Component: ResetPasswordScreen },
+      { path: '/invite/:token', Component: FriendBoardScreen },
       // Protected: everything else requires a session
       {
         Component: ProtectedRoute,
@@ -35,6 +39,9 @@ export const router = createBrowserRouter([
               { path: '/dream/:id', Component: DetailScreen },
               { path: '/completed', Component: CompletedScreen },
               { path: '/stats', Component: StatsScreen },
+              { path: '/friends', Component: FriendsScreen },
+              { path: '/friends/:id', Component: FriendBoardScreen },
+              { path: '/share', Component: ShareScreen },
               { path: '/card', element: features.dreamcard ? <CardScreen /> : <Navigate to="/" replace /> },
               { path: '/reminders', element: features.reminders ? <RemindersScreen /> : <Navigate to="/" replace /> },
               { path: '/profile', Component: ProfileScreen },

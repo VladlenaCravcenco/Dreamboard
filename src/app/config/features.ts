@@ -2,7 +2,7 @@
 export const features = {
   dreamcard: false,
   reminders: false,
-  sharing: false,
+  sharing: true,
   bulkDelete: false,
   inspiration: false,
 };

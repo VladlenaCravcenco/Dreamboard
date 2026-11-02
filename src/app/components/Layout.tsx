@@ -5,7 +5,8 @@ import { useDreams } from '../context/DreamContext';
 const tabs = [
   { to: '/', label: 'Мечты', Icon: LayoutGrid },
   { to: '/completed', label: 'Воспоминания', Icon: Heart },
-  { to: '/stats', label: 'Статистика', Icon: BarChart3, Spark },
+  { to: '/friends', label: 'Друзья', Icon: User },
+  { to: '/stats', label: 'Статистика', Icon: BarChart3 },
 ];
 
 export default function Layout() {
@@ -21,7 +22,7 @@ export default function Layout() {
               <NavLink to="/profile" aria-label="Мой аккаунт" className="p-3 rounded-full hover:bg-muted"><User size={18}/></NavLink>
             </div>
           </div>
-          <nav aria-label="Основные разделы" className="machine-nav grid grid-cols-3 gap-1">
+          <nav aria-label="Основные разделы" className="machine-nav grid grid-cols-4 gap-1">
             {tabs.map(({ to, label, Icon }) => <NavLink key={to} to={to} end className={({ isActive }) => `flex items-center justify-center gap-2 py-2 text-xs sm:text-sm ${isActive ? 'active' : 'opacity-70 hover:opacity-100'}`}><Icon size={16}/>{label}</NavLink>)}
           </nav>
         </div>

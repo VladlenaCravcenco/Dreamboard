@@ -1,0 +1,45 @@
+// Run with PGLITE_MODULE pointing to an installed @electric-sql/pglite module.
+import { readFileSync } from 'node:fs';
+import assert from 'node:assert/strict';
+const { PGlite } = await import(process.env.PGLITE_MODULE || '@electric-sql/pglite');
+const db = new PGlite();
+await db.exec(`create role anon; create role authenticated; create schema auth;
+create table auth.users(id uuid primary key);
+create function auth.uid() returns uuid language sql as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
+grant usage on schema auth to authenticated,anon;
+grant execute on function auth.uid() to authenticated,anon;`);
+await db.exec(readFileSync('supabase/migrations/20260607140000_create_dreams.sql','utf8').replace('create extension if not exists pgcrypto;',''));
+await db.exec(readFileSync('supabase/migrations/20261102010000_private_wishlists.sql','utf8'));
+const owner='10000000-0000-0000-0000-000000000001', a='10000000-0000-0000-0000-000000000002', b='10000000-0000-0000-0000-000000000003';
+const d1='20000000-0000-0000-0000-000000000001', d2='20000000-0000-0000-0000-000000000002', foreign='20000000-0000-0000-0000-000000000003';
+await db.query('insert into auth.users values ($1),($2),($3)',[owner,a,b]);
+for (const [id,uid] of [[d1,owner],[d2,owner],[foreign,b]]) await db.query("insert into public.dreams(id,user_id,category,category_label,title,description,note,saved_amount,bucket_items) values($1,$2,'material','Вещи','Фотоаппарат','Описание','SECRET',50,'[{\"text\":\"PRIVATE\"}]')",[id,uid]);
+async function as(uid){await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[uid]);await db.exec('set role authenticated');}
+async function rpc(name,args=[]){const r=await db.query(`select public.${name}(${args.map((_,i)=>'$'+(i+1)).join(',')}) as result`,args);return r.rows[0].result;}
+await as(owner);
+await assert.rejects(()=>rpc('wish_configure',['Owner',true,false,[foreign]]));
+let settings=await rpc('wish_configure',['Owner',true,false,[d1]]);
+await as(a);
+await assert.rejects(()=>db.query('select * from public.wish_gifts'));
+await assert.rejects(()=>db.query('select * from public.wish_links'));
+await assert.rejects(()=>rpc('wish_board',['00000000-0000-0000-0000-000000000000',null]));
+let board=await rpc('wish_board',[settings.token,null]);assert.equal(board.dreams.length,1);
+assert.equal(JSON.stringify(board).includes('SECRET'),false);assert.equal(JSON.stringify(board).includes('PRIVATE'),false);assert.equal('saved_amount' in board.dreams[0],false);
+await assert.rejects(()=>rpc('wish_mark',[board.id,d1,true]));
+await rpc('wish_save_friend',[settings.token]);await rpc('wish_mark',[board.id,d1,true]);
+assert.equal((await rpc('wish_board',[null,board.id])).dreams[0].marked,true);
+await assert.rejects(()=>rpc('wish_mark',[board.id,d2,true]));
+await as(b);await assert.rejects(()=>rpc('wish_board',[null,board.id]));
+await rpc('wish_save_friend',[settings.token]);assert.equal((await rpc('wish_board',[null,board.id])).dreams[0].marked,false);
+await as(owner);assert.equal((await rpc('wish_board',[settings.token,null])).dreams[0].marked,false);
+assert.deepEqual(await rpc('wish_friends_list'),[]);
+await rpc('wish_configure',['Owner',true,true,[]]);
+await as(a);assert.equal((await rpc('wish_board',[null,board.id])).dreams.length,2);
+await db.exec('reset role');await db.query('update public.dreams set done=true where id=$1',[d2]);
+await as(a);assert.equal((await rpc('wish_board',[null,board.id])).dreams.length,1);
+await as(owner);await rpc('wish_configure',['Owner',false,true,[]]);
+await as(a);await assert.rejects(()=>rpc('wish_board',[null,board.id]));await assert.rejects(()=>rpc('wish_mark',[board.id,d1,false]));
+await as(owner);await rpc('wish_configure',['Owner',true,true,[]]);await rpc('wish_rotate');
+await as(a);await assert.rejects(()=>rpc('wish_board',[settings.token,null]));await assert.rejects(()=>rpc('wish_board',[null,board.id]));assert.deepEqual(await rpc('wish_friends_list'),[]);
+await db.exec('reset role; set role anon');await assert.rejects(()=>rpc('wish_friends_list'));await assert.rejects(()=>rpc('wish_board',[settings.token,null]));
+await db.close();console.log('PASS: authenticated link access, field privacy, private marks, ownership, selection, updates, completion, revocation, rotation, anonymous denial.');

@@ -91,3 +91,28 @@ input[type="file"]::file-selector-button { background: var(--foreground); color:
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
+
+/* A compact, consistently spaced creation form with visible category choices. */
+.dream-create-dialog { padding: 24px; gap: 24px; }
+.dream-create-form { display: grid; gap: 20px; }
+.dream-create-field { display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+.dream-create-field > span, .dream-category-field legend { font-weight: 500; }
+.dream-create-field input, .dream-create-field textarea { font-size: 16px; padding: 11px 12px; }
+.dream-create-field input:focus-visible, .dream-create-field textarea:focus-visible { outline: 1px solid var(--foreground); outline-offset: 0; border-color: var(--foreground); }
+.dream-category-field { min-width: 0; padding: 0; border: 0; }
+.dream-category-field legend { font-size: 13px; margin-bottom: 10px; }
+.dream-category-options { display: flex; flex-wrap: wrap; gap: 8px; }
+.dream-category-choice { position: relative; cursor: pointer; }
+.dream-category-choice input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.dream-category-choice span { display: flex; align-items: center; min-height: 40px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 999px; background: var(--background); font-size: 12px; }
+.dream-category-choice input:checked + span { background: var(--foreground); color: var(--background); border-color: var(--foreground); }
+.dream-category-choice input:focus-visible + span { outline: 2px solid var(--foreground); outline-offset: 3px; }
+.dream-photo-row { display: flex; align-items: center; gap: 12px; padding: 16px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.dream-photo-button { padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; font-size: 12px; cursor: pointer; white-space: nowrap; }
+.dream-photo-button:focus-within { outline: 2px solid var(--foreground); outline-offset: 2px; }
+.dream-photo-button:has(input:disabled) { opacity: .5; cursor: wait; }
+.dream-extra summary { color: var(--muted-foreground); font-size: 12px; }
+@media (max-width: 600px) {
+  .dream-create-dialog { padding: 20px; gap: 20px; }
+  .dream-create-form { gap: 18px; }
+}

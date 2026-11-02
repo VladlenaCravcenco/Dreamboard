@@ -7,7 +7,7 @@ await build({
   stdin: { contents: `import React from 'react'; import { createRoot } from 'react-dom/client'; import App from './src/app/App.tsx'; createRoot(document.getElementById('root')).render(<App/>);`, resolveDir: process.cwd(), loader: 'tsx' },
   bundle: true, outfile: `${out}/app.js`, format: 'esm', jsx: 'automatic',
   define: { 'process.env.NODE_ENV': '"development"' },
-  plugins: [{ name: 'isolated-backend', setup(build) { build.onResolve({ filter: /\/lib\/supabase$/ }, () => ({ path: resolve('tests/fixtures/supabase.ts') })); } }],
+  plugins: [{ name: 'isolated-backend', setup(build) { build.onResolve({ filter: /(?:\/lib\/supabase|^\.\/supabase)$/ }, () => ({ path: resolve('tests/fixtures/supabase.ts') })); } }],
 });
 const css = (await readdir('dist/assets')).find(name => name.endsWith('.css'));
 await copyFile(`dist/assets/${css}`, `${out}/app.css`);
