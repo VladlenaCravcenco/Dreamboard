@@ -1,10 +1,10 @@
-const CACHE_NAME = 'dreamboard-v5';
+const CACHE_NAME = 'dreamboard-v6-pixel';
 const APP_SHELL = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/icon-192.png',
-  '/icon-512.png',
+  '/icon-192.png?v=pixel-1',
+  '/icon-512.png?v=pixel-1',
 ];
 
 self.addEventListener('install', (event) => {
@@ -81,8 +81,8 @@ self.addEventListener('push', (event) => {
   const title = data.title || 'Dreamboard Reminder';
   const options = {
     body: data.body || "Time to fund your dreams!",
-    icon: '/icon-192.png',
-    badge: '/icon-192.png',
+    icon: '/icon-192.png?v=pixel-1',
+    badge: '/badge-96.png?v=pixel-1',
     tag: 'dreamboard-reminder',
     requireInteraction: false,
   };

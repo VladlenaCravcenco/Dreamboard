@@ -100,8 +100,8 @@ export default function RemindersScreen() {
           
           new Notification(randomMessage.title, {
             body: randomMessage.text,
-            icon: '/icon-192.png',
-            badge: '/icon.svg',
+            icon: '/icon-192.png?v=pixel-1',
+            badge: '/badge-96.png?v=pixel-1',
             tag: 'dreamboard-test',
           });
 
@@ -118,8 +118,8 @@ export default function RemindersScreen() {
     
     const notification = new Notification(randomMessage.title, {
       body: randomMessage.text,
-      icon: '/icon-192.png',
-      badge: '/icon.svg',
+      icon: '/icon-192.png?v=pixel-1',
+      badge: '/badge-96.png?v=pixel-1',
       tag: 'dreamboard-test',
       requireInteraction: false,
     });

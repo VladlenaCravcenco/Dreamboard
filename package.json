@@ -6,7 +6,8 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite",
-    "test": "node --test tests/core.test.mjs"
+    "test": "node --test tests/core.test.mjs",
+    "icons": "node scripts/generate-icons.mjs"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
