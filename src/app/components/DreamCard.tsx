@@ -1,6 +1,5 @@
-import React from 'react';
 import { Dream, DreamProgress } from '../types';
-import { motion } from 'motion/react';
+import { Spark, ArrowLeft } from './PixelIcons';
 
 interface DreamCardProps {
   dream: Dream;
@@ -9,63 +8,16 @@ interface DreamCardProps {
   onClick: () => void;
 }
 
-const DreamCard: React.FC<DreamCardProps> = ({ dream, progress, rotation, onClick }) => {
-  const progressPercent = dream.price && progress
-    ? Math.min(Math.round((progress.savedAmount / dream.price) * 100), 100)
-    : null;
-
-  // Определяем, мобильное ли устройство
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-
-  return (
-    <motion.div
-      initial={{ rotate: isMobile ? 0 : rotation }} // На мобилке убираем ротацию
-      whileHover={isMobile ? {} : { scale: 1.05, rotate: 0, zIndex: 10 }} // На мобилке нет hover
-      transition={{ duration: 0.3 }}
-      onClick={onClick}
-      className="relative cursor-pointer group overflow-hidden shadow-md group-hover:shadow-2xl transition-shadow duration-300"
-      style={{ 
-        aspectRatio: '3/4',
-        transformOrigin: 'center center',
-        borderRadius: '15px',
-        maxWidth: '100%',
-        width: isMobile ? '100%' : 'auto',
-      }}
-    >
-      <div className="w-full h-full relative">
-        {/* Image с fallback */}
-        <img
-          src={dream.image || '/placeholder.png'} // Добавь placeholder на случай ошибки
-          alt={dream.title}
-          className="w-full h-full object-cover"
-          loading="lazy"
-        />
-
-        {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-
-        {/* Progress Badge */}
-        {progressPercent !== null && (
-          <div className="absolute top-3 right-3 bg-primary text-primary-foreground px-2 py-1 rounded-md text-sm font-medium">
-            {progressPercent}%
-          </div>
-        )}
-
-        {/* Content */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-          <div className="text-xs uppercase tracking-wider mb-1 opacity-80">
-            {dream.tag}
-          </div>
-          <h3
-            className="text-xl line-clamp-2" // Добавил line-clamp чтобы текст не вылезал
-            style={{ fontFamily: 'Cormorant Garamond, serif', fontStyle: 'italic' }}
-          >
-            {dream.title}
-          </h3>
-        </div>
-      </div>
-    </motion.div>
-  );
-};
-
-export default DreamCard;
+export default function DreamCard({ dream, progress, onClick }: DreamCardProps) {
+  const percent = dream.price && progress ? Math.min(100, Math.round(progress.savedAmount / dream.price * 100)) : null;
+  const hasPhoto = dream.image && !dream.image.includes('/icon-') && !dream.image.includes('dream-placeholder');
+  const round = dream.id.charCodeAt(0) % 2 === 0;
+  return <button onClick={onClick} aria-label={`Открыть мечту: ${dream.title}`} className="dream-tile group text-left min-w-0">
+    <div className={`dream-tile-image ${round ? 'dream-tile-image-round' : ''}`}>
+      {hasPhoto ? <img src={dream.image} alt="" loading="lazy"/> : <div className="dream-tile-placeholder"><Spark size={52}/><span>всё начинается<br/>с желания</span></div>}
+      <span className="dream-open"><ArrowLeft size={17} style={{ transform: 'rotate(135deg)' }}/></span>
+    </div>
+    <div className="flex items-center justify-between gap-2 mt-4 mb-2"><span className="eyebrow truncate">{dream.categoryLabel}</span>{percent !== null && <span className="text-xs shrink-0">{percent}%</span>}</div>
+    <h3 className="text-sm sm:text-base leading-snug line-clamp-2">{dream.title}</h3>
+  </button>;
+}

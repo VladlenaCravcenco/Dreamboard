@@ -20,17 +20,17 @@ const CompletedScreen: React.FC = () => {
   };
 
   return (
-    <div className="max-w-[1600px] mx-auto px-6 py-8 overflow-x-hidden">
+    <div className="max-w-6xl mx-auto px-6 py-8 overflow-x-hidden">
       {/* Header */}
       <div className="mb-8">
         <h1
-          className="text-4xl mb-2"
-          style={{ fontFamily: 'Cormorant Garamond, serif' }}
+          className="board-heading mb-4"
+          style={{ fontFamily: 'var(--font-machine)' }}
         >
-          Completed dreams
+          Воспоминания
         </h1>
-        <p className="text-muted-foreground italic">
-          {completedDreams.length} {completedDreams.length === 1 ? 'place' : 'places'} that changed me
+        <p className="text-muted-foreground">
+          Здесь живут мечты, которые сбылись.
         </p>
       </div>
 
@@ -43,15 +43,16 @@ const CompletedScreen: React.FC = () => {
             
             // Get photo from completionPhotos
             const photoData = completionPhotos.find(p => p.dreamId === completed.id);
-            const photoUrl = photoData?.photoUrl;
+            const photoUrl = photoData?.photoUrl || completed.completion_image_url || completed.image || '/dream-placeholder.svg';
             
             return (
-              <motion.div
+              <motion.button
+                aria-label={`Открыть воспоминание: ${completed.title}`}
                 key={uniqueKey}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
-                className="relative aspect-square rounded-lg overflow-hidden group cursor-pointer"
+                className="relative aspect-square rounded-3xl overflow-hidden group cursor-pointer"
                 onClick={() => handleDreamClick(completed)}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -70,29 +71,29 @@ const CompletedScreen: React.FC = () => {
 
                 {/* Completed Stamp */}
                 <div className="absolute top-3 left-3 bg-primary text-primary-foreground px-2 py-1 rounded text-xs font-medium flex items-center gap-1">
-                  ✓ Completed
+                  ✓ Сбылось
                 </div>
 
                 {/* Hover Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent opacity-100 transition-opacity duration-300 flex items-end p-4">
                   <h3
-                    className="text-white text-xl italic"
-                    style={{ fontFamily: 'Cormorant Garamond, serif' }}
+                    className="text-white text-base"
+                    style={{ fontFamily: 'var(--font-machine)' }}
                   >
                     {completed.title}
                   </h3>
                 </div>
-              </motion.div>
+              </motion.button>
             );
           })}
         </div>
       ) : (
         <div className="text-center py-20">
           <p
-            className="text-2xl text-muted-foreground italic"
-            style={{ fontFamily: 'Cormorant Garamond, serif' }}
+            className="text-2xl text-muted-foreground"
+            style={{ fontFamily: 'var(--font-machine)' }}
           >
-            No completed dreams yet. Start your journey!
+            Когда мечта сбудется, отметьте её в карточке — и сохраните здесь.
           </p>
         </div>
       )}

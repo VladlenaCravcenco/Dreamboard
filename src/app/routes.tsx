@@ -1,4 +1,6 @@
-import { createBrowserRouter } from 'react-router';
+import ResetPasswordScreen from './screens/ResetPasswordScreen';
+import { features } from './config/features';
+import { createBrowserRouter, Navigate } from 'react-router';
 import RootLayout from './components/RootLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
@@ -21,6 +23,7 @@ export const router = createBrowserRouter([
         path: '/auth',
         Component: AuthScreen,
       },
+      { path: '/reset-password', Component: ResetPasswordScreen },
       // Protected: everything else requires a session
       {
         Component: ProtectedRoute,
@@ -32,8 +35,8 @@ export const router = createBrowserRouter([
               { path: '/dream/:id', Component: DetailScreen },
               { path: '/completed', Component: CompletedScreen },
               { path: '/stats', Component: StatsScreen },
-              { path: '/card', Component: CardScreen },
-              { path: '/reminders', Component: RemindersScreen },
+              { path: '/card', element: features.dreamcard ? <CardScreen /> : <Navigate to="/" replace /> },
+              { path: '/reminders', element: features.reminders ? <RemindersScreen /> : <Navigate to="/" replace /> },
               { path: '/profile', Component: ProfileScreen },
             ],
           },

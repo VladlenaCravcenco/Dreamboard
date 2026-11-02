@@ -37,7 +37,7 @@ export interface Dream {
   completed_at?: string | null;
 }
 
-export interface CompletedDream extends Omit<Dream, 'image'> {
+export interface CompletedDream extends Dream {
   completedDate?: Date;
   completedAt?: string;
   completionPhotoUrl?: string;

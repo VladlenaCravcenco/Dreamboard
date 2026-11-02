@@ -31,3 +31,63 @@ body,
     font-size: 16px !important;
   }
 }
+
+/* Monochrome / dot-matrix visual system */
+body {
+  background-color: var(--background);
+  background-image: radial-gradient(circle, var(--dot-color) 0.8px, transparent 0.9px);
+  background-size: 22px 22px;
+  background-attachment: fixed;
+}
+#root, .app-shell { background-color: transparent; }
+body, button, input, textarea, select { font-family: var(--font-machine); }
+button, a, input, textarea, select { -webkit-tap-highlight-color: transparent; }
+button:not(:disabled), summary { cursor: pointer; }
+button, a { transition: background-color .18s, color .18s, opacity .18s, transform .18s; }
+:focus-visible { outline: 2px solid var(--foreground); outline-offset: 4px; }
+::selection { background: var(--foreground); color: var(--background); }
+h1, h2, h3 { font-style: normal; letter-spacing: -0.045em; }
+h1 { font-weight: 400; }
+h2 { letter-spacing: -0.035em; }
+.eyebrow { font-size: 10px; line-height: 1.6; letter-spacing: .12em; text-transform: uppercase; color: var(--muted-foreground); }
+.app-shell > header { background: var(--background); border-bottom: 1px solid var(--border); }
+.brand { font-size: 15px; font-weight: 600; letter-spacing: -.06em; text-transform: uppercase; display: flex; align-items: center; gap: 10px; }
+.brand-symbol { display: grid; place-items: center; background: var(--foreground); color: var(--background); width: 32px; height: 32px; border-radius: 8px; }
+.machine-nav { background: var(--foreground); color: var(--background); padding: 5px; border-radius: 999px; margin-bottom: 15px; }
+.machine-nav a { border-radius: 999px; min-height: 43px; font-size: 11px; }
+.machine-nav a.active { background: var(--background); color: var(--foreground); }
+.board-heading { font-size: clamp(36px, 6vw, 64px); line-height: 1.08; letter-spacing: -.07em; }
+.board-intro { padding-top: 30px; padding-bottom: 18px; }
+.dream-tile { padding-bottom: 18px; }
+.dream-tile-image { position: relative; aspect-ratio: 1; overflow: hidden; border-radius: 28px; background: var(--muted-bg); }
+.dream-tile-image-round { border-radius: 50%; }
+.dream-tile-image img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(1); transition: transform .35s; }
+.dream-tile:hover img { transform: scale(1.04); }
+.dream-tile-placeholder { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; background-image: radial-gradient(var(--dot-color) 1px, transparent 1px); background-size: 12px 12px; }
+.dream-tile-placeholder span { text-align: center; font-size: 10px; line-height: 1.7; letter-spacing: .04em; }
+.dream-open { position: absolute; right: 12px; bottom: 12px; width: 34px; height: 34px; background: var(--background); color: var(--foreground); border-radius: 50%; display: grid; place-items: center; }
+.dream-tile-image-round .dream-open { right: 15%; bottom: 4%; }
+.app-shell main > div > button.bg-primary { border-radius: 999px; }
+.app-shell main section, .app-shell main details { background: var(--card); }
+.app-shell main .stats-hero { background: transparent; }
+.app-shell main img { filter: grayscale(1); }
+input, textarea, select { border-color: var(--border); }
+input[type="checkbox"] { accent-color: var(--foreground); }
+input[type="file"] { font-size: 12px; }
+input[type="file"]::file-selector-button { background: var(--foreground); color: var(--background); border: 0; border-radius: 5px; padding: 8px 10px; margin-right: 10px; font-family: inherit; cursor: pointer; }
+[data-slot="dialog-content"] { box-shadow: 0 24px 80px #0002; border-radius: 20px; }
+[data-slot="dialog-content"] img { filter: grayscale(1); }
+.dot-progress { display: block; width: min(260px, 70vw); height: auto; margin: 0 auto; }
+.stats-hero { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 20px; border-bottom: 1px solid var(--border); padding: 18px 0 36px; }
+.stats-number { font-size: clamp(64px, 10vw, 112px); line-height: 1; letter-spacing: -.09em; }
+@media (max-width: 600px) {
+  .board-intro { padding-top: 16px; }
+  .machine-nav a { font-size: 10px; gap: 6px; }
+  .dream-tile-image { border-radius: 22px; }
+  .dream-tile-image-round { border-radius: 50%; }
+  .stats-hero { grid-template-columns: 1fr; gap: 26px; }
+  .stats-hero > div { text-align: center; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}

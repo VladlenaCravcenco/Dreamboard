@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dreamboard-v4';
+const CACHE_NAME = 'dreamboard-v5';
 const APP_SHELL = [
   '/',
   '/index.html',

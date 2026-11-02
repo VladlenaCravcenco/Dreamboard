@@ -8,23 +8,13 @@ export const supabase = createClient(supabaseUrl, publicAnonKey);
 
 export const API_BASE_URL = `${supabaseUrl}/functions/v1/make-server-92c819cc`;
 
-/**
- * Возвращает заголовки для запроса к Edge Function.
- * 
- * ВАЖНО: Supabase Edge Functions ВСЕГДА требуют Bearer-токен.
- * Если пользователь не залогинен — передаём anon key (= публичный доступ).
- * Если залогинен — передаём его JWT (= авторизованный доступ).
- */
+/** Publishable keys go in apikey; only a user's session JWT goes in Authorization. */
 async function getAuthHeaders(): Promise<Record<string, string>> {
   const { data: { session } } = await supabase.auth.getSession();
-
   return {
     'Content-Type': 'application/json',
-    // The Edge Gateway still validates Authorization with the legacy JWT
-    // verifier, which rejects ES256 user tokens. Pass the legacy anon JWT
-    // through the gateway and verify the real user token inside the function.
-    'Authorization': `Bearer ${publicAnonKey}`,
-    ...(session?.access_token && { 'X-User-Authorization': `Bearer ${session.access_token}` }),
+    apikey: publicAnonKey,
+    ...(session?.access_token && { Authorization: `Bearer ${session.access_token}` }),
   };
 }
 
@@ -86,8 +76,8 @@ export async function uploadFile(file: File, dreamId: string, type: 'cover' | 'c
   const response = await fetch(`${API_BASE_URL}/upload-image`, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${publicAnonKey}`,
-      ...(session?.access_token && { 'X-User-Authorization': `Bearer ${session.access_token}` }),
+      apikey: publicAnonKey,
+      ...(session?.access_token && { Authorization: `Bearer ${session.access_token}` }),
     },
     body: formData,
   });

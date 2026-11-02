@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
+import { PendingWrites } from '../lib/pendingWrites.mjs';
+import React, { createContext, useContext, useState, useEffect, useRef, useMemo, ReactNode } from 'react';
 import {
   Dream,
   DreamProgress,
@@ -147,7 +148,20 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
-  const localDataReady = useRef(false);
+  const [loadedUser, setLoadedUser] = useState<string | null>(null);
+  const accountKey = user?.id ?? 'guest';
+  const activeAccount = useRef(accountKey);
+  activeAccount.current = accountKey;
+  const revision = useRef(0);
+  const queue = useMemo(() => new PendingWrites({
+    storage: localStorage,
+    key: `dreamboard_${accountKey}_pending`,
+    send: async (record: Dream) => {
+      if (!record.user_id) return;
+      const { error } = await supabase.from('dreams').upsert(toDatabaseDream(record, record.user_id));
+      if (error) throw error;
+    },
+  }), [accountKey]);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
@@ -159,7 +173,7 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   }, [authLoading, user?.id]);
 
   useEffect(() => {
-    if (authLoading || !localDataReady.current) return;
+    if (authLoading || loadedUser !== accountKey) return;
 
     const data: LocalDreamboardData = {
       dreams,
@@ -176,9 +190,11 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       localStorage.setItem(getLocalStorageKey(user?.id), JSON.stringify(data));
     } catch (error) {
       console.error('Failed to save local dreamboard:', error);
+      setSyncError('Не удалось сохранить копию на устройстве. Освободите место и повторите синхронизацию.');
     }
   }, [
     authLoading,
+    loadedUser,
     user?.id,
     dreams,
     completedDreams,
@@ -193,7 +209,7 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   // ─── Local-first storage ───────────────────────────────────────────────────
 
   const loadLocalData = () => {
-    localDataReady.current = false;
+    setLoadedUser(null);
     const data = readLocalData(user?.id);
 
     setDreams(data?.dreams ?? []);
@@ -205,21 +221,26 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setQuoteState(data?.quote ?? DEFAULT_QUOTE);
     setThemeState(data?.theme ?? 'light');
     setLoading(false);
-    window.setTimeout(() => {
-      localDataReady.current = true;
-    }, 0);
+    setLoadedUser(accountKey);
 
     if (user) {
       syncFromSupabase().catch((error) => {
         console.error('Dream sync failed; continuing with local data:', error);
-        setSyncError(error instanceof Error ? error.message : 'Dream sync failed');
+        if (activeAccount.current === accountKey) setSyncError('Нет связи с облаком. Изменения на этом устройстве ожидают синхронизации.');
       });
     }
   };
 
   const refreshDreams = async () => {
-    loadLocalData();
+    try { await syncFromSupabase(); }
+    catch { if (activeAccount.current === accountKey) setSyncError('Не удалось синхронизировать. Проверьте подключение и повторите.'); }
   };
+
+  useEffect(() => {
+    const retry = () => { void refreshDreams(); };
+    window.addEventListener('online', retry);
+    return () => window.removeEventListener('online', retry);
+  }, [accountKey]);
 
   const syncFromSupabase = async () => {
     if (!user) return;
@@ -227,13 +248,18 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setSyncError(null);
 
     try {
+      await queue.flush();
+      const readRevision = revision.current;
       const { data, error } = await supabase
         .from('dreams')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
 
+      // Never replace edits made while this request was in flight or another account's state.
+      if (activeAccount.current !== accountKey || readRevision !== revision.current) return;
       const all = (data ?? []).map(fromDatabaseDream);
       const active = all.filter((dream) => !dream.done);
       const done = all.filter((dream) => dream.done);
@@ -248,16 +274,26 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           .map((dream) => ({ dreamId: dream.id, photoUrl: dream.completion_image_url! }))
       );
     } finally {
-      setSyncing(false);
+      if (activeAccount.current === accountKey) setSyncing(false);
     }
   };
 
   const syncDream = async (dream: Dream) => {
     if (!user) return;
-    const { error } = await supabase
-      .from('dreams')
-      .upsert(toDatabaseDream(dream, user.id));
-    if (error) throw error;
+    revision.current += 1;
+    setSyncing(true);
+    try {
+      queue.put({ ...dream, user_id: user.id });
+      await queue.flush();
+      if (activeAccount.current === accountKey) setSyncError(null);
+    } catch (error) {
+      if (activeAccount.current === accountKey) {
+        setSyncError('Изменения ещё не сохранены в облаке. Не очищайте данные браузера; нажмите «Повторить», когда появится связь.');
+      }
+      throw error;
+    } finally {
+      if (activeAccount.current === accountKey) setSyncing(false);
+    }
   };
 
   // ─── Quote & Theme ─────────────────────────────────────────────────────────
@@ -301,6 +337,8 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const deleteDream = async (dreamId: string): Promise<boolean> => {
     if (user) {
+      try { await queue.flush(); } catch { toast.error('Перед удалением нужно синхронизировать изменения.'); return false; }
+      revision.current += 1;
       const { data, error } = await supabase
         .from('dreams')
         .delete()
@@ -323,6 +361,7 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setDreams((prev) => prev.filter((d) => d.id !== dreamId));
     setDreamProgress((prev) => prev.filter((p) => p.dreamId !== dreamId));
     setDreamNotes((prev) => prev.filter((n) => n.dreamId !== dreamId));
+    setCompletionPhotos((prev) => prev.filter((p) => p.dreamId !== dreamId));
     setSavingsEvents((prev) => prev.filter((e) => e.dream_id !== dreamId));
     return true;
   };
@@ -337,8 +376,7 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     const updates: any = { done: true, completed_at: now };
     if (photoUrl) updates.completion_image_url = photoUrl;
 
-    const { image, ...rest } = dream;
-    const completed: CompletedDream = { ...rest, ...updates, completedAt: now };
+    const completed: CompletedDream = { ...dream, ...updates, completedAt: now };
 
     setDreams((prev) => prev.filter((d) => d.id !== dreamId));
     setCompletedDreams((prev) => [completed, ...prev]);
@@ -407,6 +445,7 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   // ─── Progress & Savings ────────────────────────────────────────────────────
 
   const updateDreamProgress = (dreamId: string, amount: number) => {
+    if (!Number.isFinite(amount) || amount < 0) { toast.error('Введите сумму не меньше нуля'); return; }
     setDreamProgress((prev) => {
       const exists = prev.find((p) => p.dreamId === dreamId);
       return exists

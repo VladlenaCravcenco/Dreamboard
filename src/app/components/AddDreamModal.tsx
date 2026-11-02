@@ -1,300 +1,57 @@
-import React, { useMemo, useState } from 'react';
-import { X } from 'lucide-react';
+import { useState } from 'react';
 import { useDreams } from '../context/DreamContext';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Category } from '../types';
-import { motion, AnimatePresence } from 'motion/react';
+import { compressImage } from '../utils/imageCompression';
+import { toast } from 'sonner';
 
-interface AddDreamModalProps {
-  isOpen: boolean;
-  onClose: () => void;
+export const categoryLabels: Record<Category, string> = { travel: 'Путешествия', adventure: 'Приключения', personal: 'Личное', 'style-health': 'Забота о себе', material: 'Покупки' };
+export const fieldClass = 'w-full rounded-xl border border-border bg-background px-3 py-3 text-sm';
+export const primaryClass = 'rounded-xl bg-primary text-primary-foreground px-5 py-3 text-sm font-medium disabled:opacity-50';
+
+export async function readPhoto(file: File) {
+  if (!file.type.startsWith('image/')) throw new Error('Выберите изображение');
+  if (file.size > 15 * 1024 * 1024) throw new Error('Выберите фото меньше 15 МБ');
+  const data = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error('Не удалось прочитать фото'));
+    reader.readAsDataURL(file);
+  });
+  return compressImage(data, 1000, 0.75);
 }
 
-const TAG_SUGGESTIONS: Record<Category, string[]> = {
-  travel: ['Asia', 'Europe', 'Beach', 'City Break', 'Culture', 'Road Trip'],
-  adventure: ['Hiking', 'Nature', 'Extreme', 'Wildlife', 'Water Sports', 'Mountains'],
-  personal: ['Skills', 'Creativity', 'Romance', 'Learning', 'Career', 'Family'],
-  'style-health': ['Wellness', 'Fashion', 'Beauty', 'Fitness', 'Self Care', 'Mindfulness'],
-  material: ['Tech', 'Vehicles', 'Accessories', 'Home', 'Gear', 'Collectibles'],
-};
-
-const AddDreamModal: React.FC<AddDreamModalProps> = ({ isOpen, onClose }) => {
-  const { addDream, dreams, completedDreams } = useDreams();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState({
-    title: '',
-    category: 'travel' as Category,
-    tag: '',
-    location: '',
-    description: '',
-    price: '',
-    season: '',
-    duration: '',
-    difficulty: '',
-    image: '',
-  });
-
-  const tagOptions = useMemo(() => {
-    const existingTags = [...dreams, ...completedDreams]
-      .map((dream) => dream.tag)
-      .filter((tag): tag is string => Boolean(tag));
-
-    return Array.from(new Set([...existingTags, ...TAG_SUGGESTIONS[formData.category]]));
-  }, [completedDreams, dreams, formData.category]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    
-    const created = await addDream({
-      category: formData.category,
-      categoryLabel: formData.category.charAt(0).toUpperCase() + formData.category.slice(1),
-      tag: formData.tag.trim(),
-      title: formData.title.trim(),
-      location: formData.location || undefined,
-      season: formData.season || undefined,
-      price: formData.price ? parseFloat(formData.price) : undefined,
-      duration: formData.duration || undefined,
-      difficulty: formData.difficulty || undefined,
-      description: formData.description.trim(),
-      bucketItems: [],
-      image: formData.image || 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800',
-    });
-
-    setIsSubmitting(false);
-
-    if (!created) return;
-
-    // Reset form
-    setFormData({
-      title: '',
-      category: 'travel',
-      tag: '',
-      location: '',
-      description: '',
-      price: '',
-      season: '',
-      duration: '',
-      difficulty: '',
-      image: '',
-    });
-
-    onClose();
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        {/* Backdrop */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={onClose}
-          className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        />
-
-        {/* Modal */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.9 }}
-          className="relative bg-card rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-        >
-          <div className="sticky top-0 bg-card border-b border-border p-6 flex items-center justify-between">
-            <h2 style={{ fontFamily: 'Cormorant Garamond, serif' }}>
-              Add New Dream
-            </h2>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-muted rounded-full transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          <form onSubmit={handleSubmit} className="p-6 space-y-4">
-            <div>
-              <label className="block text-sm mb-1">Title *</label>
-              <input
-                type="text"
-                required
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm mb-1">Category *</label>
-                <select
-                  required
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value as Category })}
-                  className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
-                >
-                  <option value="travel">Travel</option>
-                  <option value="adventure">Adventure</option>
-                  <option value="personal">Personal</option>
-                  <option value="style-health">Style & Health</option>
-                  <option value="material">Material</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm mb-1">Tag *</label>
-                <input
-                  type="text"
-                  required
-                  value={formData.tag}
-                  onChange={(e) => setFormData({ ...formData, tag: e.target.value })}
-                  placeholder="e.g. Europe, Wellness, Tech"
-                  className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
-                />
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {tagOptions.slice(0, 8).map((tag) => (
-                    <button
-                      key={tag}
-                      type="button"
-                      onClick={() => setFormData({ ...formData, tag })}
-                      className={`rounded-full border px-3 py-1 text-xs transition-colors ${
-                        formData.tag === tag
-                          ? 'border-primary bg-primary text-primary-foreground'
-                          : 'border-border bg-muted hover:bg-muted/70'
-                      }`}
-                    >
-                      {tag}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm mb-1">Description *</label>
-              <textarea
-                required
-                rows={3}
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm mb-1">Location</label>
-                <input
-                  type="text"
-                  value={formData.location}
-                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm mb-1">Season</label>
-                <div className="flex gap-1">
-                  {[
-                    { value: '', label: 'None' },
-                    { value: 'Spring', label: 'Spring' },
-                    { value: 'Summer', label: 'Summer' },
-                    { value: 'Fall', label: 'Fall' },
-                    { value: 'Winter', label: 'Winter' },
-                  ].map((season) => (
-                    <button
-                      key={season.value}
-                      type="button"
-                      onClick={() => setFormData({ ...formData, season: season.value })}
-                      className={`flex-1 px-2 py-2 rounded text-xs transition-all ${
-                        formData.season === season.value
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted hover:bg-muted/70'
-                      }`}
-                    >
-                      {season.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm mb-1">Price ($)</label>
-                <input
-                  type="number"
-                  value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                  onFocus={(e) => {
-                    if (e.target.value === '0' || e.target.value === '') {
-                      setFormData({ ...formData, price: '' });
-                    }
-                  }}
-                  className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm mb-1">Duration</label>
-                <input
-                  type="text"
-                  value={formData.duration}
-                  onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                  className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm mb-1">Difficulty</label>
-                <select
-                  value={formData.difficulty}
-                  onChange={(e) => setFormData({ ...formData, difficulty: e.target.value })}
-                  className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
-                >
-                  <option value="">Select...</option>
-                  <option value="Easy">Easy</option>
-                  <option value="Medium">Medium</option>
-                  <option value="Hard">Hard</option>
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm mb-1">Image URL</label>
-              <input
-                type="url"
-                value={formData.image}
-                onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                placeholder="https://..."
-                className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-            </div>
-
-            <div className="flex gap-3 pt-4">
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={isSubmitting}
-                className="flex-1 px-4 py-2 rounded-lg border border-border hover:bg-muted transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="flex-1 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isSubmitting ? 'Creating...' : 'Add Dream'}
-              </button>
-            </div>
-          </form>
-        </motion.div>
-      </div>
-    </AnimatePresence>
-  );
-};
-
-export default AddDreamModal;
+export default function AddDreamModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  const { addDream } = useDreams();
+  const [title, setTitle] = useState('');
+  const [category, setCategory] = useState<Category>('personal');
+  const [description, setDescription] = useState('');
+  const [price, setPrice] = useState('');
+  const [photo, setPhoto] = useState('');
+  const [busy, setBusy] = useState(false);
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    if (!title.trim()) return;
+    setBusy(true);
+    try {
+      const created = await addDream({ title: title.trim(), category, categoryLabel: categoryLabels[category], description: description.trim(), price: price ? Number(price) : undefined, image: photo || '/dream-placeholder.svg', bucketItems: [], tag: '' });
+      if (created) { setTitle(''); setDescription(''); setPrice(''); setPhoto(''); onClose(); }
+    } finally { setBusy(false); }
+  }
+  return <Dialog open={isOpen} onOpenChange={(open) => { if (!open && !busy) onClose(); }}>
+    <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
+      <DialogHeader><DialogTitle>Новая мечта</DialogTitle><DialogDescription>Начните с названия. Всё остальное можно добавить позже.</DialogDescription></DialogHeader>
+      <form onSubmit={submit} className="space-y-4">
+        <label className="block text-sm space-y-2"><span>О чём вы мечтаете?</span><input autoFocus required maxLength={160} value={title} onChange={e => setTitle(e.target.value)} placeholder="Увидеть северное сияние" className={fieldClass}/></label>
+        <label className="block text-sm space-y-2"><span>Категория</span><select value={category} onChange={e => setCategory(e.target.value as Category)} className={fieldClass}>{Object.entries(categoryLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+        <label className="block text-sm space-y-2"><span>Фото · необязательно</span><input type="file" accept="image/*" disabled={busy} className={fieldClass} onChange={async e => { const file = e.target.files?.[0]; if (!file) return; setBusy(true); try { setPhoto(await readPhoto(file)); } catch (err) { toast.error(err instanceof Error ? err.message : 'Не удалось загрузить фото'); } finally { setBusy(false); } }}/></label>
+        {photo && <img src={photo} alt="Обложка мечты" className="h-32 w-full object-cover rounded-xl"/>}
+        <details className="rounded-xl border border-border p-4"><summary className="cursor-pointer text-sm">Описание и бюджет · необязательно</summary><div className="space-y-4 mt-4">
+          <label className="block text-sm space-y-2"><span>Почему это важно для вас?</span><textarea value={description} onChange={e => setDescription(e.target.value)} className={fieldClass} rows={3}/></label>
+          <label className="block text-sm space-y-2"><span>Бюджет, $</span><input type="number" min="0" max="9999999999" step="0.01" value={price} onChange={e => setPrice(e.target.value)} placeholder="Можно оставить пустым" className={fieldClass}/></label>
+        </div></details>
+        <button disabled={busy || !title.trim()} className={`${primaryClass} w-full`}>{busy ? 'Сохраняем…' : 'Добавить мечту'}</button>
+      </form>
+    </DialogContent>
+  </Dialog>;
+}

@@ -11,7 +11,7 @@ const SERVER_VERSION = '2026-06-07-es256-gateway-fix';
 app.use('*', cors({
   origin: '*',
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization', 'X-User-Authorization'],
+  allowHeaders: ['Content-Type', 'Authorization', 'X-User-Authorization', 'apikey'],
 }));
 app.use('*', logger(console.log));
 

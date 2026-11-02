@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router';
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { supabase, apiCall } from '../lib/supabase';
 
@@ -49,6 +50,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const initialized = useRef(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     // onAuthStateChange ловит ВСЕ события: INITIAL_SESSION, SIGNED_IN, SIGNED_OUT,
@@ -57,6 +59,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.log('[Auth] event:', event, '| user:', session?.user?.email ?? 'null');
 
       setUser(session?.user ? toAuthUser(session.user) : null);
+      if (event === 'PASSWORD_RECOVERY') navigate('/reset-password', { replace: true });
 
       if (!initialized.current) {
         initialized.current = true;
@@ -135,14 +138,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // ─── Выход ────────────────────────────────────────────────────────────────
 
   const signOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
     setUser(null);
-    await supabase.auth.signOut();
   };
 
   // ─── Сброс пароля ─────────────────────────────────────────────────────────
 
   const resetPassword = async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/reset-password` });
     if (error) throw error;
   };
 
@@ -161,6 +165,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const deleteAccount = async () => {
     await apiCall('/account', { method: 'DELETE' });
+    if (user) {
+      for (const key of Object.keys(localStorage)) {
+        if (key.startsWith(`dreamboard_${user.id}_`)) localStorage.removeItem(key);
+      }
+    }
     setUser(null);
     await supabase.auth.signOut();
   };

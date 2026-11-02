@@ -1,7 +1,9 @@
+import { supabase } from '../lib/supabase';
 import React, { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
+import { Spark } from '../components/PixelIcons';
 
 type Mode = 'signin' | 'signup' | 'forgot';
 
@@ -11,6 +13,22 @@ export default function AuthScreen() {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [googleBusy, setGoogleBusy] = useState(false);
+
+  const signInWithGoogle = async () => {
+    setGoogleBusy(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: `${window.location.origin}/`, queryParams: { prompt: 'select_account' } },
+      });
+      if (error) throw error;
+    } catch {
+      toast.error('Вход через Google пока недоступен. Попробуйте позже или войдите по почте.');
+    } finally {
+      setGoogleBusy(false);
+    }
+  };
   const [pendingEmail, setPendingEmail] = useState<string | null>(null); // ← экран "проверьте почту"
   const [resending, setResending] = useState(false);
   const [errors, setErrors] = useState<{
@@ -29,8 +47,8 @@ export default function AuthScreen() {
     return (
       <Centered>
         <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin"
-          style={{ borderColor: '#c9a84c', borderTopColor: 'transparent' }} />
-        <p style={{ fontFamily: 'Cormorant Garamond, serif', color: '#1a1a2e', opacity: 0.5 }}>
+          style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }} />
+        <p style={{ fontFamily: 'var(--font-machine)', color: 'var(--foreground)', opacity: 0.5 }}>
           Загрузка…
         </p>
       </Centered>
@@ -43,18 +61,18 @@ export default function AuthScreen() {
       <Centered>
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <div className="text-6xl mb-4">📬</div>
-            <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 32, color: '#1a1a2e' }}>
+            <div className="mb-4 flex justify-center"><Spark size={48} /></div>
+            <h2 style={{ fontFamily: 'var(--font-machine)', fontSize: 32, color: 'var(--foreground)' }}>
               Проверьте почту
             </h2>
           </div>
 
           <div className="rounded-2xl p-8 shadow-xl text-center space-y-4"
-            style={{ background: 'rgba(255,255,255,0.94)', border: '1px solid rgba(0,0,0,0.06)' }}>
-            <p style={{ color: '#1a1a2e' }}>
+            style={{ background: 'var(--card)', border: '1px solid rgba(0,0,0,0.06)' }}>
+            <p style={{ color: 'var(--foreground)' }}>
               Мы отправили письмо с подтверждением на
             </p>
-            <p className="font-semibold text-lg" style={{ color: '#1a1a2e' }}>
+            <p className="font-semibold text-lg" style={{ color: 'var(--foreground)' }}>
               {pendingEmail}
             </p>
             <p className="text-sm" style={{ color: 'rgba(0,0,0,0.45)' }}>
@@ -81,7 +99,7 @@ export default function AuthScreen() {
                   }
                 }}
                 className="text-sm hover:underline disabled:opacity-50"
-                style={{ color: '#c9a84c' }}
+                style={{ color: 'var(--primary)' }}
               >
                 {resending ? 'Отправляем…' : 'Отправить письмо повторно'}
               </button>
@@ -92,7 +110,7 @@ export default function AuthScreen() {
                   setMode('signin');
                 }}
                 className="text-sm hover:underline"
-                style={{ color: '#c9a84c' }}
+                style={{ color: 'var(--primary)' }}
               >
                 Уже подтвердили? Войти →
               </button>
@@ -171,11 +189,11 @@ export default function AuthScreen() {
 
         {/* Логотип */}
         <div className="text-center mb-10">
-          <h1 className="text-6xl tracking-tight mb-2"
-            style={{ fontFamily: 'Cormorant Garamond, serif', color: '#1a1a2e' }}>
+          <h1 className="text-4xl sm:text-5xl tracking-tight mb-2"
+            style={{ fontFamily: 'var(--font-machine)', color: 'var(--foreground)' }}>
             Dreamboard
           </h1>
-          <p className="text-sm" style={{ color: 'rgba(26,26,46,0.45)' }}>
+          <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
             {mode === 'signin' && 'Войдите в свой аккаунт'}
             {mode === 'signup' && 'Создайте свой Dreamboard'}
             {mode === 'forgot' && 'Восстановление пароля'}
@@ -183,15 +201,24 @@ export default function AuthScreen() {
         </div>
 
         {/* Карточка */}
-        <div className="rounded-2xl shadow-xl p-8"
-          style={{ background: 'rgba(255,255,255,0.94)', border: '1px solid rgba(0,0,0,0.06)' }}>
+        <div className="rounded-2xl border border-border p-6 sm:p-8"
+          style={{ background: 'var(--card)', border: '1px solid rgba(0,0,0,0.06)' }}>
+
+          {mode !== 'forgot' && <div className="mb-6">
+            <button type="button" disabled={googleBusy || submitting} onClick={signInWithGoogle}
+              className="w-full rounded-xl border px-4 py-3 text-sm font-medium disabled:opacity-50"
+              style={{ borderColor: 'var(--border)', color: 'var(--foreground)', background: 'var(--card)' }}>
+              {googleBusy ? 'Открываем Google…' : 'Продолжить с Google'}
+            </button>
+            <p className="text-center text-xs mt-4" style={{ color: 'var(--muted-foreground)' }}>или войдите по почте</p>
+          </div>}
 
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
 
             {/* Общая ошибка */}
             {errors.banner && (
               <div className="rounded-xl px-4 py-3 text-sm flex gap-2"
-                style={{ background: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca' }}>
+                style={{ background: 'var(--muted-bg)', color: 'var(--foreground)', border: '1px solid var(--foreground)' }}>
                 <span className="shrink-0">⚠</span>
                 <span>{errors.banner}</span>
               </div>
@@ -231,7 +258,7 @@ export default function AuthScreen() {
 
             <button type="submit" disabled={submitting}
               className="w-full py-3 rounded-xl text-sm font-semibold mt-1 transition-opacity disabled:opacity-50"
-              style={{ background: '#c9a84c', color: '#1a1a2e' }}>
+              style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
               {submitting
                 ? 'Подождите…'
                 : mode === 'signin' ? 'Войти'
@@ -241,7 +268,7 @@ export default function AuthScreen() {
           </form>
 
           {/* Переключатели */}
-          <div className="mt-6 text-center space-y-2 text-sm" style={{ color: 'rgba(0,0,0,0.4)' }}>
+          <div className="mt-6 text-center space-y-2 text-sm" style={{ color: 'var(--muted-foreground)' }}>
             {mode === 'signin' && (
               <>
                 <p>Нет аккаунта?{' '}
@@ -261,8 +288,8 @@ export default function AuthScreen() {
           </div>
 
           <div className="mt-6 pt-5 text-center" style={{ borderTop: '1px solid rgba(0,0,0,0.05)' }}>
-            <p className="text-xs" style={{ color: 'rgba(0,0,0,0.22)' }}>
-              🔒 Ваши данные надёжно хранятся и синхронизируются
+            <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+              Личное пространство для ваших мечт
             </p>
           </div>
         </div>
@@ -276,7 +303,7 @@ export default function AuthScreen() {
 function Centered({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-4"
-      style={{ background: 'linear-gradient(135deg, #f5f0e8 0%, #ede8de 100%)' }}>
+      style={{ background: 'transparent' }}>
       {children}
     </div>
   );
@@ -286,8 +313,8 @@ function cls(hasError: boolean) {
   return [
     'w-full px-4 py-2.5 rounded-lg border text-sm outline-none transition-all focus:ring-2',
     hasError
-      ? 'border-red-400 bg-red-50 focus:ring-red-100 text-red-900'
-      : 'border-gray-200 bg-white focus:ring-amber-100 focus:border-amber-400',
+      ? 'border-foreground bg-muted focus:ring-ring text-foreground'
+      : 'border-border bg-card focus:ring-ring focus:border-foreground',
   ].join(' ');
 }
 
@@ -296,10 +323,10 @@ function Field({ label, error, children }: {
 }) {
   return (
     <div className="space-y-1.5">
-      <label className="block text-sm font-medium" style={{ color: '#1a1a2e' }}>{label}</label>
+      <label className="block text-sm font-medium" style={{ color: 'var(--foreground)' }}>{label}</label>
       {children}
       {error && (
-        <p className="text-xs flex gap-1.5" style={{ color: '#b91c1c' }}>
+        <p className="text-xs flex gap-1.5" style={{ color: 'var(--foreground)' }}>
           <span className="shrink-0">⚠</span>{error}
         </p>
       )}
@@ -310,7 +337,7 @@ function Field({ label, error, children }: {
 function Btn({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
   return (
     <button type="button" onClick={onClick}
-      className="font-semibold hover:underline" style={{ color: '#1a1a2e' }}>
+      className="font-semibold hover:underline" style={{ color: 'var(--foreground)' }}>
       {children}
     </button>
   );

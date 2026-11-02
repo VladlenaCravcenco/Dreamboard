@@ -22,7 +22,7 @@ export default function ProtectedRoute() {
         <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin" />
         <p
           className="text-muted-foreground text-sm"
-          style={{ fontFamily: 'Cormorant Garamond, serif' }}
+          style={{ fontFamily: 'var(--font-machine)' }}
         >
           Loading Dreamboard…
         </p>
