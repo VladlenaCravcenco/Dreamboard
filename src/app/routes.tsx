@@ -28,6 +28,7 @@ export const router = createBrowserRouter([
       },
       { path: '/reset-password', Component: ResetPasswordScreen },
       { path: '/invite/:token', Component: FriendBoardScreen },
+      { path: '/u/:slug', Component: FriendBoardScreen },
       // Protected: everything else requires a session
       {
         Component: ProtectedRoute,

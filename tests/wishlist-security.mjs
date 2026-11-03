@@ -12,6 +12,7 @@ await db.exec(readFileSync('supabase/migrations/20260607140000_create_dreams.sql
 await db.exec(readFileSync('supabase/migrations/20261102010000_private_wishlists.sql','utf8'));
 await db.exec(readFileSync('supabase/migrations/20261102020000_gift_planning.sql','utf8'));
 await db.exec(readFileSync('supabase/migrations/20261103010000_birthdays.sql','utf8'));
+await db.exec(readFileSync('supabase/migrations/20261103020000_named_links.sql','utf8'));
 const owner='10000000-0000-0000-0000-000000000001', a='10000000-0000-0000-0000-000000000002', b='10000000-0000-0000-0000-000000000003';
 const d1='20000000-0000-0000-0000-000000000001', d2='20000000-0000-0000-0000-000000000002', foreign='20000000-0000-0000-0000-000000000003';
 await db.query('insert into auth.users values ($1),($2),($3)',[owner,a,b]);
@@ -90,7 +91,24 @@ await db.exec('reset role');await db.query('update public.dreams set done=true w
 await rpc('wish_save_details',[extras[2],'','','',false,true]);
 await as(owner);await rpc('wish_configure',['Owner',false,true,[]]);
 await as(a);assert.equal((await rpc('wish_friends_list'))[0].birthday,null);await assert.rejects(()=>rpc('wish_board',[null,board.id]));await assert.rejects(()=>rpc('wish_mark',[board.id,d1,false]));
-await as(owner);await rpc('wish_configure',['Owner',true,true,[]]);await rpc('wish_rotate');
+await as(owner);
+await assert.rejects(()=>rpc('wish_configure_named',['Owner','x',true,true,[]]));
+let named=await rpc('wish_configure_named',['Owner','  Lena  ',true,true,[]]);assert.equal(named.slug,'lena');
+await as(a);assert.equal((await rpc('wish_board_named',['lena'])).id,board.id);
+await rpc('wish_save_friend_named',['lena']);
+await assert.rejects(()=>db.query('select * from public.wish_link_names'));
+await as(b);await assert.rejects(()=>rpc('wish_configure_named',['B','lena',true,true,[]]));
+assert.equal(await rpc('wish_settings'),null);
+await as(owner);await rpc('wish_configure_named',['Owner','lena-new',true,true,[]]);
+await as(a);await assert.rejects(()=>rpc('wish_board_named',['lena']));
+assert.equal((await rpc('wish_board_named',['lena-new'])).id,board.id);
+await as(b);await assert.rejects(()=>rpc('wish_configure_named',['B','lena',true,true,[]]));
+await as(owner);await rpc('wish_configure_named',['Owner','lena-new',false,true,[]]);
+await as(a);await assert.rejects(()=>rpc('wish_board_named',['lena-new']));await assert.rejects(()=>rpc('wish_save_friend_named',['lena-new']));
+await as(owner);await rpc('wish_configure_named',['Owner','lena-new',true,true,[]]);await rpc('wish_rotate');
+await as(a);await assert.rejects(()=>rpc('wish_board_named',['lena-new']));
+
 await as(a);await assert.rejects(()=>rpc('wish_board',[settings.token,null]));await assert.rejects(()=>rpc('wish_board',[null,board.id]));assert.deepEqual(await rpc('wish_friends_list'),[]);
 await db.exec('reset role; set role anon');await assert.rejects(()=>rpc('wish_friends_list'));await assert.rejects(()=>rpc('wish_board',[settings.token,null]));
+await assert.rejects(()=>rpc('wish_board_named',['lena-new']));
 await db.close();console.log('PASS: authenticated link access, field privacy, private marks, ownership, selection, updates, completion, revocation, rotation, anonymous denial, reservation exclusivity, giver privacy, gift details, preferences and priority limit.');

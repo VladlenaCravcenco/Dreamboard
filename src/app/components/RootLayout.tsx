@@ -12,7 +12,7 @@ function ResumeInvite() {
   useEffect(() => {
     const path = sessionStorage.getItem('dreamboard-pending-invite');
     if (!user || !path) return;
-    if (!/^\/invite\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(path)) { sessionStorage.removeItem('dreamboard-pending-invite'); return; }
+    if (!/^\/invite\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(path) && !/^\/u\/[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$/.test(path)) { sessionStorage.removeItem('dreamboard-pending-invite'); return; }
     if (pathname === '/' || pathname === '/auth') navigate(path, { replace: true });
     if (pathname === path) sessionStorage.removeItem('dreamboard-pending-invite');
   }, [user, pathname, navigate]);

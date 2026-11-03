@@ -32,6 +32,11 @@ const prefs={surprise_ok:true,interests:'Фото и керамика',occasion:
 let giftMarked = localStorage.getItem('qa_gift_marked') === 'true';
 (supabase as any).rpc = async (name, args = {}) => {
   let data;
+  if(name==='wish_board_named'||name==='wish_save_friend_named') {
+    if(!shareSettings?.enabled||shareSettings.slug!==args.p_slug)return {data:null,error:{message:'Ссылка недоступна'}};
+    args={p_token:shareSettings.token};name=name==='wish_board_named'?'wish_board':'wish_save_friend';
+  }
+
   if(name==='wish_birthday')data=ownBirthday;
   else if(name==='wish_birthday_save'){ownBirthday=args.p_month?{month:args.p_month,day:args.p_day,visible:args.p_visible}:null;localStorage.setItem('qa_birthday',JSON.stringify(ownBirthday));data=ownBirthday;}
   else if(name==='wish_own_details')data=detailRows[args.p_dream_id]||{product_url:rows.find(r=>r.id===args.p_dream_id)?.product_url||''};
@@ -39,11 +44,11 @@ let giftMarked = localStorage.getItem('qa_gift_marked') === 'true';
   else if(name==='wish_preferences'){data={surprise_ok:args.p_surprise,interests:args.p_interests,colors:args.p_colors,avoid:args.p_avoid,occasion:args.p_occasion,occasion_date:args.p_date};shareSettings.preferences=data;localStorage.setItem('qa_share_settings',JSON.stringify(shareSettings));}
   else if(name==='wish_reserve'||name==='wish_gift_plan'){const p=plans[args.p_dream_id]||{};plans[args.p_dream_id]={...p,...(name==='wish_reserve'?{reservation:args.p_reserved?'mine':'free'}:{private_note:args.p_note,gift_status:args.p_status}),marked:true};localStorage.setItem('qa_plans',JSON.stringify(plans));}
   else if (name === 'wish_settings') data = shareSettings;
-  else if (name === 'wish_configure') {
-    shareSettings = { preferences:shareSettings?.preferences, token: shareSettings?.token || '40000000-0000-0000-0000-000000000002', display_name: args.p_name, enabled: args.p_enabled, include_future: args.p_future, dream_ids: args.p_dream_ids };
+  else if ((name === 'wish_configure'||name === 'wish_configure_named')) {
+    shareSettings = { slug:args.p_slug||shareSettings?.slug, preferences:shareSettings?.preferences, token: shareSettings?.token || '40000000-0000-0000-0000-000000000002', display_name: args.p_name, enabled: args.p_enabled, include_future: args.p_future, dream_ids: args.p_dream_ids };
     localStorage.setItem('qa_share_settings',JSON.stringify(shareSettings)); data=shareSettings;
   } else if (name === 'wish_rotate') {
-    shareSettings={...shareSettings,token:crypto.randomUUID()}; localStorage.setItem('qa_share_settings',JSON.stringify(shareSettings));data=shareSettings;
+    shareSettings={...shareSettings,slug:null,enabled:false,token:crypto.randomUUID()}; localStorage.setItem('qa_share_settings',JSON.stringify(shareSettings));data=shareSettings;
   } else if (name === 'wish_friends_list') data = friendSaved ? [{id:friendId,name:'Саша',available:true,count:2,birthday:{month:11,day:8},preferences:prefs}] : [];
   else if (name === 'wish_save_friend') {friendSaved=true;localStorage.setItem('qa_friend_saved','true');data=friendId;}
   else if (name === 'wish_remove_friend') {friendSaved=false;giftMarked=false;localStorage.setItem('qa_friend_saved','false');localStorage.setItem('qa_gift_marked','false');}

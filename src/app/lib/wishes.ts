@@ -1,6 +1,6 @@
 import type { GiftDetails, GiftPreferences } from './giftDetails';
 import { supabase } from './supabase';
-export type ShareSettings = { token: string; enabled: boolean; include_future: boolean; display_name: string; dream_ids: string[]; preferences?: GiftPreferences };
+export type ShareSettings = { slug?: string | null; token: string; enabled: boolean; include_future: boolean; display_name: string; dream_ids: string[]; preferences?: GiftPreferences };
 export type Birthday = { month: number; day: number; visible?: boolean };
 export type Friend = { id: string; name: string; available: boolean; count: number; birthday?: Birthday | null; preferences?: GiftPreferences };
 export type FriendDream = { id: string; title: string; description: string; image: string; price?: number; category: string; marked: boolean; details?: GiftDetails; reservation?: 'mine' | 'other' | 'free' | null; private_note?: string; gift_status?: 'idea' | 'ordered' | 'ready' };
@@ -21,3 +21,5 @@ export function readInvite(value: string): string | null {
     return url.pathname.match(/^\/invite\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/?$/i)?.[1] ?? null;
   } catch { return null; }
 }
+
+export const namedInvitePath = (slug: string) => `/u/${encodeURIComponent(slug)}`;
