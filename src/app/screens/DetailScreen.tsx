@@ -32,7 +32,7 @@ export default function DetailScreen() {
     catch (error) { toast.error(error instanceof Error ? error.message : 'Не удалось загрузить фото'); }
     finally { setBusy(false); }
   }
-  return <main className="max-w-6xl mx-auto px-4 py-6 pb-16">
+  return <main className="detail-screen max-w-6xl mx-auto px-4 py-6 pb-16">
     <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground mb-5"><ArrowLeft size={16}/>Все мечты</Link>
     <h1 className="text-4xl break-words mb-6" style={{ fontFamily: 'var(--font-machine)' }}>{dream.title}</h1>
     <div className="grid md:grid-cols-[0.85fr_1.15fr] gap-6 items-start">

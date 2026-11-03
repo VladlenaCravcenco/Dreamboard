@@ -29,7 +29,7 @@ const CompletedScreen: React.FC = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-8 overflow-x-hidden">
+    <div className="memory-screen max-w-6xl mx-auto px-6 py-8 overflow-x-hidden">
       {celebratingId && <PixelCelebration />}
       {/* Header */}
       <div className="mb-8">

@@ -1,9 +1,10 @@
 import type { GiftDetails, GiftPreferences } from './giftDetails';
 import { supabase } from './supabase';
 export type ShareSettings = { token: string; enabled: boolean; include_future: boolean; display_name: string; dream_ids: string[]; preferences?: GiftPreferences };
-export type Friend = { id: string; name: string; available: boolean; count: number; preferences?: GiftPreferences };
+export type Birthday = { month: number; day: number; visible?: boolean };
+export type Friend = { id: string; name: string; available: boolean; count: number; birthday?: Birthday | null; preferences?: GiftPreferences };
 export type FriendDream = { id: string; title: string; description: string; image: string; price?: number; category: string; marked: boolean; details?: GiftDetails; reservation?: 'mine' | 'other' | 'free' | null; private_note?: string; gift_status?: 'idea' | 'ordered' | 'ready' };
-export type Board = { id: string; name: string; saved: boolean; is_owner: boolean; dreams: FriendDream[]; preferences?: GiftPreferences };
+export type Board = { id: string; name: string; saved: boolean; is_owner: boolean; dreams: FriendDream[]; birthday?: Birthday | null; preferences?: GiftPreferences };
 export async function wishes<T>(name: string, args = {}): Promise<T> {
   const { data, error } = await supabase.rpc(name, args);
   if (error) {

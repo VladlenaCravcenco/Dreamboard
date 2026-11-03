@@ -17,7 +17,7 @@ export default function DreamCard({ dream, progress, onClick }: DreamCardProps) 
       {hasPhoto ? <img src={dream.image} alt="" loading="lazy"/> : <div className="dream-tile-placeholder"><Spark size={52}/><span>всё начинается<br/>с желания</span></div>}
       <span className="dream-open"><ArrowLeft size={17} style={{ transform: 'rotate(135deg)' }}/></span>
     </div>
-    <div className="flex items-center justify-between gap-2 mt-4 mb-2"><span className="eyebrow truncate">{dream.categoryLabel}</span>{percent !== null && <span className="text-xs shrink-0">{percent}%</span>}</div>
-    <h3 className="text-sm sm:text-base leading-snug line-clamp-2">{dream.title}</h3>
+    <div className="dream-tile-copy"><div className="dream-tile-meta flex items-center justify-between gap-2 mt-4 mb-2"><span className="eyebrow truncate">{dream.categoryLabel}</span>{percent !== null && <span className="text-xs shrink-0">{percent}%</span>}</div>
+    <h3 className="text-sm sm:text-base leading-snug line-clamp-2">{dream.title}</h3></div>
   </button>;
 }

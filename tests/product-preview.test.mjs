@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {publicIPv4,validProductUrl,metadata} from '../api/product-preview.mjs';
+import {publicIPv4,validProductUrl,metadata} from '../api/product-preview.js';
 test('preview blocks non-web protocols, credentials, local hosts and alternate ports',()=>{
  for(const url of ['http://example.com','file:///etc/passwd','https://user:pass@example.com','https://localhost','https://router.local','https://host.internal','https://example.com:8080'])assert.throws(()=>validProductUrl(url));
  assert.equal(validProductUrl('https://example.com/product#section').href,'https://example.com/product');

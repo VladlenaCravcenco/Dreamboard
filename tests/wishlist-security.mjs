@@ -11,6 +11,7 @@ grant execute on function auth.uid() to authenticated,anon;`);
 await db.exec(readFileSync('supabase/migrations/20260607140000_create_dreams.sql','utf8').replace('create extension if not exists pgcrypto;',''));
 await db.exec(readFileSync('supabase/migrations/20261102010000_private_wishlists.sql','utf8'));
 await db.exec(readFileSync('supabase/migrations/20261102020000_gift_planning.sql','utf8'));
+await db.exec(readFileSync('supabase/migrations/20261103010000_birthdays.sql','utf8'));
 const owner='10000000-0000-0000-0000-000000000001', a='10000000-0000-0000-0000-000000000002', b='10000000-0000-0000-0000-000000000003';
 const d1='20000000-0000-0000-0000-000000000001', d2='20000000-0000-0000-0000-000000000002', foreign='20000000-0000-0000-0000-000000000003';
 await db.query('insert into auth.users values ($1),($2),($3)',[owner,a,b]);
@@ -20,7 +21,14 @@ async function rpc(name,args=[]){const r=await db.query(`select public.${name}($
 await as(owner);
 await assert.rejects(()=>rpc('wish_configure',['Owner',true,false,[foreign]]));
 let settings=await rpc('wish_configure',['Owner',true,false,[d1]]);
+await rpc('wish_birthday_save',[11,3,false]);
+assert.deepEqual(await rpc('wish_birthday'),{month:11,day:3,visible:false});
+await assert.rejects(()=>rpc('wish_birthday_save',[4,31,true]));
 await as(a);
+assert.equal(await rpc('wish_birthday'),null);
+await assert.rejects(()=>db.query('select * from public.wish_birthdays'));
+await assert.rejects(()=>rpc('wish_visible_birthday',[owner]));
+assert.equal((await rpc('wish_board',[settings.token,null])).birthday,null);
 await assert.rejects(()=>db.query('select * from public.wish_gifts'));
 await assert.rejects(()=>db.query('select * from public.wish_links'));
 await assert.rejects(()=>rpc('wish_board',['00000000-0000-0000-0000-000000000000',null]));
@@ -28,6 +36,16 @@ let board=await rpc('wish_board',[settings.token,null]);assert.equal(board.dream
 assert.equal(JSON.stringify(board).includes('SECRET'),false);assert.equal(JSON.stringify(board).includes('PRIVATE'),false);assert.equal('saved_amount' in board.dreams[0],false);
 await assert.rejects(()=>rpc('wish_mark',[board.id,d1,true]));
 await rpc('wish_save_friend',[settings.token]);await rpc('wish_mark',[board.id,d1,true]);
+assert.equal((await rpc('wish_friends_list'))[0].birthday,null);
+await as(owner);await rpc('wish_birthday_save',[11,3,true]);
+await as(b);assert.equal((await rpc('wish_board',[settings.token,null])).birthday,null);
+await as(a);assert.deepEqual((await rpc('wish_friends_list'))[0].birthday,{month:11,day:3});
+assert.deepEqual((await rpc('wish_board',[null,board.id])).birthday,{month:11,day:3});
+await as(owner);await rpc('wish_birthday_save',[11,3,false]);
+await as(a);assert.equal((await rpc('wish_friends_list'))[0].birthday,null);
+await as(owner);await rpc('wish_birthday_save',[null,null,false]);assert.equal(await rpc('wish_birthday'),null);
+await rpc('wish_birthday_save',[11,3,true]);await as(a);
+
 assert.equal((await rpc('wish_board',[null,board.id])).dreams[0].marked,true);
 await assert.rejects(()=>rpc('wish_mark',[board.id,d2,true]));
 await as(b);await assert.rejects(()=>rpc('wish_board',[null,board.id]));
@@ -71,7 +89,7 @@ await assert.rejects(()=>rpc('wish_save_details',[extras[2],'','','',false,true]
 await db.exec('reset role');await db.query('update public.dreams set done=true where id=$1',[extras[0]]);await as(owner);
 await rpc('wish_save_details',[extras[2],'','','',false,true]);
 await as(owner);await rpc('wish_configure',['Owner',false,true,[]]);
-await as(a);await assert.rejects(()=>rpc('wish_board',[null,board.id]));await assert.rejects(()=>rpc('wish_mark',[board.id,d1,false]));
+await as(a);assert.equal((await rpc('wish_friends_list'))[0].birthday,null);await assert.rejects(()=>rpc('wish_board',[null,board.id]));await assert.rejects(()=>rpc('wish_mark',[board.id,d1,false]));
 await as(owner);await rpc('wish_configure',['Owner',true,true,[]]);await rpc('wish_rotate');
 await as(a);await assert.rejects(()=>rpc('wish_board',[settings.token,null]));await assert.rejects(()=>rpc('wish_board',[null,board.id]));assert.deepEqual(await rpc('wish_friends_list'),[]);
 await db.exec('reset role; set role anon');await assert.rejects(()=>rpc('wish_friends_list'));await assert.rejects(()=>rpc('wish_board',[settings.token,null]));

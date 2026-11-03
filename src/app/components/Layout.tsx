@@ -1,4 +1,4 @@
-import { Outlet, NavLink } from 'react-router';
+import { Outlet, NavLink, useLocation } from 'react-router';
 import { Moon, Sun, User, LayoutGrid, Heart, BarChart3, Spark } from './PixelIcons';
 import { useDreams } from '../context/DreamContext';
 
@@ -10,6 +10,8 @@ const tabs = [
 ];
 
 export default function Layout() {
+  const { pathname } = useLocation();
+  const activeTab = pathname.startsWith('/friends') || pathname === '/share' ? '/friends' : pathname.startsWith('/completed') ? '/completed' : pathname === '/stats' ? '/stats' : pathname === '/' || pathname.startsWith('/dream/') ? '/' : null;
   const { theme, toggleTheme, syncing, syncError, refreshDreams } = useDreams();
   return (
     <div className="app-shell min-h-screen bg-background">
@@ -22,14 +24,15 @@ export default function Layout() {
               <NavLink to="/profile" aria-label="Мой аккаунт" className="p-3 rounded-full hover:bg-muted"><User size={18}/></NavLink>
             </div>
           </div>
-          <nav aria-label="Основные разделы" className="machine-nav grid grid-cols-4 gap-1">
-            {tabs.map(({ to, label, Icon }) => <NavLink key={to} to={to} end className={({ isActive }) => `flex items-center justify-center gap-2 py-2 text-xs sm:text-sm ${isActive ? 'active' : 'opacity-70 hover:opacity-100'}`}><Icon size={16}/>{label}</NavLink>)}
-          </nav>
+      <nav aria-label="Основные разделы" className="notebook-tabs">
+        {tabs.map(({ to, label, Icon }) => <NavLink key={to} to={to} end aria-label={label} aria-current={activeTab === to ? 'page' : undefined} className={`notebook-tab ${activeTab === to ? 'is-active' : ''}`}><Icon size={18}/><span>{label}</span></NavLink>)}
+      </nav>
         </div>
       </header>
       {(syncing || syncError) && <div role="status" className="max-w-6xl mx-auto px-4 py-3 text-sm text-muted-foreground">
         {syncError ? <div className="flex items-center justify-between gap-3"><span>{syncError}</span><button onClick={() => void refreshDreams()} className="underline shrink-0">Повторить</button></div> : 'Сохраняем и синхронизируем…'}
       </div>}
+
       <Outlet />
     </div>
   );

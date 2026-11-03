@@ -14,7 +14,7 @@
     }
   ],
   "functions": {
-    "api/product-preview.mjs": {
+    "api/product-preview.js": {
       "maxDuration": 30
     }
   }
