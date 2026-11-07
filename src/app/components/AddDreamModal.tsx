@@ -54,10 +54,10 @@ export default function AddDreamModal({ isOpen, onClose }: { isOpen: boolean; on
     } finally { setBusy(false); }
   }
   return <Dialog open={isOpen} onOpenChange={(open) => { if (!open && !busy && !importing) onClose(); }}>
-    <DialogContent className="dream-create-dialog max-h-[90dvh] overflow-y-auto sm:max-w-lg">
-      <DialogHeader className="text-left pr-6 gap-2"><DialogTitle>Новая мечта</DialogTitle><DialogDescription>Что хочется осуществить?</DialogDescription></DialogHeader>
+    <DialogContent className="dream-create-dialog max-h-[90dvh] overflow-y-auto sm:max-w-lg" onOpenAutoFocus={event => event.preventDefault()}>
+      <DialogHeader className="text-left pr-6 gap-2"><DialogTitle>Новая мечта</DialogTitle><DialogDescription>Что хочется осуществить? Незавершённая форма сохранится, пока вы на этой странице.</DialogDescription></DialogHeader>
       <form onSubmit={submit} className="dream-create-form">
-        <label className="dream-create-field"><span>О чём вы мечтаете?</span><input autoFocus required maxLength={160} value={title} onChange={e => setTitle(e.target.value)} placeholder={hints.title} className={fieldClass}/></label>
+        <label className="dream-create-field"><span>О чём вы мечтаете?</span><input required maxLength={160} value={title} onChange={e => setTitle(e.target.value)} placeholder={hints.title} className={fieldClass}/></label>
         <details className="dream-extra"><summary>Добавить по ссылке на товар</summary><div className="grid gap-3 mt-3">
           <input aria-label="Ссылка на товар" disabled={importing||busy} type="url" maxLength={2000} value={productUrl} onChange={e=>{setProductUrl(e.target.value);setPreview(null);}} placeholder="https://магазин/товар" className={fieldClass}/>
           <button type="button" disabled={importing||busy||!productUrl.trim()} className={primaryClass} onClick={async()=>{setImporting(true);setPreview(null);try{const {data:{session}}=await supabase.auth.getSession();if(!session)throw new Error('Войдите в аккаунт');const response=await fetch('/api/product-preview',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({url:productUrl.trim()}),signal:AbortSignal.timeout(25000)});const result=await response.json().catch(()=>({error:'Автозаполнение доступно после публикации на Vercel. Можно заполнить вручную.'}));if(!response.ok||result.error)throw new Error(result.error||'Не удалось получить превью');setPreview(result);}catch(e){toast.error((e as Error).message);}finally{setImporting(false);}}}>{importing?'Получаем название и фото…':'Найти название и фото'}</button>
@@ -80,7 +80,7 @@ export default function AddDreamModal({ isOpen, onClose }: { isOpen: boolean; on
         </div>
         <details className="dream-extra"><summary className="cursor-pointer text-sm">Описание и бюджет</summary><div className="grid gap-4 mt-4">
           <label className="dream-create-field"><span>{hints.question}</span><textarea value={description} onChange={e => setDescription(e.target.value)} placeholder={hints.description} className={fieldClass} rows={3}/></label>
-          <label className="dream-create-field"><span>Бюджет, $</span><input type="number" min="0" max="9999999999" step="0.01" value={price} onChange={e => setPrice(e.target.value)} placeholder="Можно оставить пустым" className={fieldClass}/></label>
+          <label className="dream-create-field"><span>Бюджет, $</span><input type="number" inputMode="decimal" min="0" max="9999999999" step="0.01" value={price} onChange={e => setPrice(e.target.value)} placeholder="Можно оставить пустым" className={fieldClass}/></label>
         </div></details>
         <button disabled={busy || importing || !title.trim()} className={`${primaryClass} w-full`}>{busy ? 'Сохраняем…' : 'Добавить мечту'}</button>
       </form>

@@ -1,0 +1,103 @@
+/* Mobile compositions are isolated from the desktop notebook. */
+.mobile-tabs, .mobile-next-step, .mobile-card-status, .mobile-card-progress, .mobile-delete-label { display: none; }
+.screen-scroll { min-width: 0; }
+@media (max-width: 767px) {
+  :root {
+    --background: #f5f5f4;
+    --card: #ffffff;
+    --popover: #ffffff;
+    --foreground: #171717;
+    --muted-foreground: #525252;
+    --border: #d4d4d4;
+    --muted-bg: #e7e7e5;
+    --mobile-radius: 16px;
+    --mobile-space: 16px;
+  }
+  .dark {
+    --background: #111111;
+    --card: #202020;
+    --popover: #202020;
+    --foreground: #fafafa;
+    --muted-foreground: #b8b8b8;
+    --border: #555555;
+    --muted-bg: #383838;
+  }
+  body { background-image: none; }
+  .app-shell { height: 100dvh; min-height: 0; display: flex; flex-direction: column; background: var(--background); touch-action: auto; }
+  .app-shell > header { position: relative; flex-shrink: 0; padding-top: env(safe-area-inset-top, 0px); background: var(--card); }
+  .app-shell > header > div { padding: 4px 16px; }
+  .app-shell > header > div > div { margin: 0; min-height: 52px; }
+  .app-shell .brand { font-size: 13px; letter-spacing: -.03em; }
+  .app-shell .brand-symbol { width: 28px; height: 28px; }
+  .app-shell header .notebook-tabs, .app-shell header a[aria-label="Мой аккаунт"] { display: none; }
+  .screen-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior-y: contain; scroll-padding-block: 16px; }
+  .screen-scroll > main, .screen-scroll > .memory-screen { width: 100%; padding: 24px max(16px, env(safe-area-inset-right)) 32px max(16px, env(safe-area-inset-left)); }
+  .mobile-tabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); flex-shrink: 0; padding: 6px 8px max(8px, env(safe-area-inset-bottom)); background: var(--card); border-top: 1px solid var(--border); }
+  .mobile-tabs a { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 56px; min-width: 0; padding: 4px 0; color: var(--muted-foreground); font-size: 10px; letter-spacing: -.03em; border-radius: 12px; }
+  .mobile-tabs a.is-active { background: var(--foreground); color: var(--card); font-weight: 600; }
+  .app-shell button, .app-shell summary, .app-shell input:not([type=checkbox]):not([type=radio]):not(.sr-only), [data-slot=dialog-content] button { min-height: 48px; }
+  .app-shell button:has(> svg:only-child) { min-width: 48px; }
+  .app-shell button:active, .mobile-tabs a:active { opacity: .7; }
+  .app-shell h1, .app-shell .board-heading { font-size: clamp(26px, 7.5vw, 34px); letter-spacing: -.045em; line-height: 1.2; overflow-wrap: anywhere; }
+  .app-shell h2 { overflow-wrap: anywhere; }
+  .app-shell .eyebrow { font-size: 11px; letter-spacing: .04em; }
+  .board-intro { padding: 0; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
+  .board-intro > div { flex: 1 1 190px; }
+  .board-counter { margin-bottom: 8px; }
+  .board-heading { margin-bottom: 8px; }
+  .board-add { border-radius: 12px !important; padding: 12px 16px; }
+  .board-caption { font-size: 13px; }
+  .app-shell main .mobile-next-step { display: grid; gap: 8px; padding: 20px; margin-bottom: 24px; border-radius: var(--mobile-radius); background: var(--foreground); color: var(--card); }
+  .mobile-next-step .eyebrow, .mobile-next-step > p { color: inherit; }
+  .mobile-next-step > p:not(.eyebrow) { font-size: 13px; opacity: .8; overflow-wrap: anywhere; }
+  .mobile-next-step h2 { font-size: 20px; line-height: 1.4; }
+  .mobile-next-step button { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px; border-top: 1px solid currentColor; text-align: left; font-size: 14px; }
+  .board-filters { margin-bottom: 16px; padding-bottom: 8px; touch-action: pan-x; }
+  .board-filters button { font-size: 13px; }
+  .dream-board-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .dream-tile { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 16px; padding: 12px; background: var(--card); border: 1px solid var(--border); border-radius: var(--mobile-radius); align-items: center; }
+  .dream-tile-image, .dream-tile-image-round { width: 96px; height: 112px; aspect-ratio: auto; border-radius: 10px; }
+  .dream-open, .dream-tile-placeholder span { display: none; }
+  .dream-tile-placeholder { background-image: none; }
+  .dream-tile-placeholder svg { width: 32px; }
+  .dream-tile-meta { margin: 0 0 6px; }
+  .dream-tile-meta .eyebrow { font-size: 10px; }
+  .dream-tile h3 { font-size: 16px; font-weight: 600; letter-spacing: -.025em; overflow-wrap: anywhere; }
+  .mobile-card-status { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 10px; font-size: 11px; color: var(--muted-foreground); }
+  .mobile-card-progress { display: block; height: 4px; border-radius: 4px; background: var(--muted-bg); overflow: hidden; margin-top: 10px; }
+  .mobile-card-progress > span { display: block; height: 100%; background: var(--foreground); }
+  .detail-screen > a { min-height: 48px; margin: -12px 0 12px; }
+  .detail-layout, .detail-column { gap: 24px; }
+  .detail-cover > img { height: 200px; }
+  .app-shell main .detail-basics { gap: 16px; }
+  .app-shell main .detail-panel { padding: 16px; gap: 16px; border-radius: var(--mobile-radius); }
+  .detail-categories { gap: 8px; }
+  .detail-categories button { font-size: 12px; }
+  .task-list li { border-bottom: 1px solid var(--border); padding-block: 4px; gap: 0; }
+  .task-check { display: grid; place-items: center; width: 48px; height: 48px; flex-shrink: 0; }
+  .detail-final-actions { flex-direction: column; gap: 24px; }
+  .dream-complete-button { background: var(--foreground); color: var(--card); animation: none; }
+  .dream-delete-button { width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px; border: 0; background: transparent; color: var(--muted-foreground); }
+  .mobile-delete-label { display: inline; font-size: 13px; }
+  .budget-track { background: var(--muted-bg); height: 8px; }
+  .app-shell main .stats-hero { background: var(--foreground); color: var(--card); border-radius: var(--mobile-radius); padding: 24px 16px; grid-template-columns: 1fr; gap: 16px; }
+  .stats-hero .eyebrow, .stats-hero .text-muted-foreground { color: inherit; }
+  .stats-hero .dot-progress { width: 160px; }
+  .stats-screen > .grid { gap: 12px; }
+  .stats-screen > .grid > a { padding: 16px; overflow-wrap: anywhere; }
+  .memory-screen > .grid { grid-template-columns: minmax(0, 1fr); }
+  .memory-screen > .grid > button { aspect-ratio: 4 / 3; }
+  [data-slot=dialog-content] { top: auto; bottom: 0; left: 0; transform: none; translate: none; width: 100%; max-width: 100%; max-height: calc(100dvh - env(safe-area-inset-top)); overflow-y: auto; border-radius: 24px 24px 0 0; padding: 24px 16px max(24px, env(safe-area-inset-bottom)); background: var(--card); scroll-padding: 24px; }
+  [data-slot=dialog-content] > button:last-child { width: 48px; height: 48px; top: 4px; right: 4px; display: grid; place-items: center; }
+  [data-slot=dialog-header] { text-align: left; padding-right: 32px; }
+  [data-slot=dialog-title] { line-height: 1.4; overflow-wrap: anywhere; }
+  [data-slot=dialog-content].dream-create-dialog { height: 100dvh; max-height: 100dvh; border-radius: 0; border: 0; padding-top: max(24px, env(safe-area-inset-top)); display: block; }
+  .dream-create-dialog [data-slot=dialog-header] { margin-bottom: 24px; }
+  .dream-create-dialog > button:last-child { top: max(4px, env(safe-area-inset-top)); }
+  .dream-create-form { gap: 24px; }
+  .dream-category-choice span, .dream-photo-button, .dream-extra summary { min-height: 48px; align-content: center; font-size: 13px; }
+  .dream-extra summary { cursor: pointer; }
+  .dream-create-field { font-size: 14px; }
+  .dream-create-form > button { margin-top: 8px; }
+  .app-shell input, .app-shell textarea, [data-slot=dialog-content] input, [data-slot=dialog-content] textarea { scroll-margin-block: 24px; }
+}

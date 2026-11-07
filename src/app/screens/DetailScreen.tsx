@@ -40,7 +40,7 @@ export default function DetailScreen() {
           <h1 className="sr-only">{dream.title}</h1>
           <label className="dream-create-field"><span className="sr-only">Название мечты</span><textarea rows={2} key={`title-${dream.id}`} defaultValue={dream.title} maxLength={160} className="detail-title-input" onBlur={e=>{const value=e.target.value.trim();if(value)void updateDreamField(id!,'title',value);else e.target.value=dream.title;}}/></label>
           <fieldset className="detail-categories"><legend className="sr-only">Категория</legend>{Object.entries(categoryLabels).map(([value,label])=><button type="button" key={value} aria-pressed={dream.category===value} onClick={async()=>{await updateDreamField(id!,'category',value as Category);await updateDreamField(id!,'categoryLabel',label);}}>{label}</button>)}</fieldset>
-          <label className="dream-create-field"><span className="sr-only">Описание мечты</span><textarea key={`description-${dream.id}`} defaultValue={dream.description} rows={2} placeholder="Добавить описание…" className={fieldClass} onBlur={e=>void updateDreamField(id!,'description',e.target.value)}/></label>
+          <label className="dream-create-field"><span>Описание мечты</span><textarea key={`description-${dream.id}`} defaultValue={dream.description} rows={2} placeholder="Добавить описание…" className={fieldClass} onBlur={e=>void updateDreamField(id!,'description',e.target.value)}/></label>
         </section>
       </div>
       <div className="detail-column">
@@ -48,15 +48,15 @@ export default function DetailScreen() {
         <section className={panel}>
           <div className="flex justify-between items-center"><h2 className="text-xl">Шаги</h2><span className="text-sm text-muted-foreground">{checked} / {dream.bucketItems.length}</span></div>
           {!dream.bucketItems.length && <p className="text-sm text-muted-foreground">Что поможет исполнить мечту?</p>}
-          <ul className="space-y-2">{dream.bucketItems.map(item => <li key={item.id} className="flex items-center gap-2">
-            <input type="checkbox" checked={item.checked} onChange={() => toggleBucketItem(id!, item.id)} aria-label={`Выполнено: ${item.text}`} className="w-5 h-5 accent-primary shrink-0"/>
+          <ul className="task-list space-y-2">{dream.bucketItems.map(item => <li key={item.id} className="flex items-center gap-2">
+            <label className="task-check"><input type="checkbox" checked={item.checked} onChange={() => toggleBucketItem(id!, item.id)} aria-label={`Выполнено: ${item.text}`} className="w-5 h-5 accent-primary shrink-0"/></label>
             <input aria-label="Название шага" defaultValue={item.text} onBlur={e => { if (e.target.value.trim()) updateBucketItem(id!, item.id, e.target.value.trim()); else e.target.value = item.text; }} className={`min-w-0 flex-1 bg-transparent py-2 text-sm ${item.checked ? 'line-through text-muted-foreground' : ''}`}/>
             <button aria-label={`Удалить шаг: ${item.text}`} onClick={() => removeCustomBucketItem(id!, item.id)} className="p-2 text-muted-foreground"><Trash2 size={16}/></button>
           </li>)}</ul>
           <form className="flex gap-2" onSubmit={e => { e.preventDefault(); if (task.trim()) { addCustomBucketItem(id!, task.trim()); setTask(''); } }}><input value={task} onChange={e => setTask(e.target.value)} placeholder="Добавить шаг…" aria-label="Новый шаг" className={fieldClass}/><button aria-label="Добавить шаг" disabled={!task.trim()} className={primaryClass}><Plus size={18}/></button></form>
         </section>
         <DreamBudget key={dream.id} goal={dream.price??0} saved={dream.saved_amount??0} onSave={(goal,amount)=>{void updateDreamField(id!,'price',goal);updateDreamProgress(id!,amount);}}/>
-        <div className="detail-final-actions"><button onClick={()=>setCompleting(true)} className="dream-complete-button"><Check size={18}/><span>Мечта сбылась</span></button><button onClick={()=>setDeleting(true)} className="dream-delete-button" aria-label="Удалить мечту" title="Удалить мечту"><Trash2 size={20}/></button></div>
+        <div className="detail-final-actions"><button onClick={()=>setCompleting(true)} className="dream-complete-button"><Check size={18}/><span>Мечта сбылась</span></button><button onClick={()=>setDeleting(true)} className="dream-delete-button" aria-label="Удалить мечту" title="Удалить мечту"><Trash2 size={20}/><span className="mobile-delete-label">Удалить мечту</span></button></div>
       </div>
     </div>
     <Dialog open={completing} onOpenChange={open => { if (!busy) setCompleting(open); }}><DialogContent><DialogHeader><DialogTitle>Сохранить воспоминание</DialogTitle><DialogDescription>«{dream.title}» появится в воспоминаниях. Можно добавить фото момента или оставить обложку.</DialogDescription></DialogHeader>

@@ -18,6 +18,6 @@ export default function DreamCard({ dream, progress, onClick }: DreamCardProps) 
       <span className="dream-open"><ArrowLeft size={17} style={{ transform: 'rotate(135deg)' }}/></span>
     </div>
     <div className="dream-tile-copy"><div className="dream-tile-meta flex items-center justify-between gap-2 mt-4 mb-2"><span className="eyebrow truncate">{dream.categoryLabel}</span>{percent !== null && <span className="text-xs shrink-0">{percent}%</span>}</div>
-    <h3 className="text-sm sm:text-base leading-snug line-clamp-2">{dream.title}</h3></div>
+    <h3 className="text-sm sm:text-base leading-snug line-clamp-2">{dream.title}</h3><div className="mobile-card-status"><span>В процессе</span><span>{dream.bucketItems.filter(item => item.checked).length} / {dream.bucketItems.length} шагов</span></div>{percent !== null && <div className="mobile-card-progress" role="progressbar" aria-label="Накоплено на мечту" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}><span style={{ width: `${percent}%` }}/></div>}</div>
   </button>;
 }

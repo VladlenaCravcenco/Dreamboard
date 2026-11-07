@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from 'react';
 import { Outlet, NavLink, useLocation } from 'react-router';
 import { Moon, Sun, User, LayoutGrid, Heart, BarChart3, Spark } from './PixelIcons';
 import { useDreams } from '../context/DreamContext';
@@ -13,6 +14,14 @@ export default function Layout() {
   const { pathname } = useLocation();
   const activeTab = pathname.startsWith('/friends') || pathname === '/share' ? '/friends' : pathname.startsWith('/completed') ? '/completed' : pathname === '/stats' ? '/stats' : pathname === '/' || pathname.startsWith('/dream/') ? '/' : null;
   const { theme, toggleTheme, syncing, syncError, refreshDreams } = useDreams();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const positions = useRef<Record<string, number>>({});
+  useLayoutEffect(() => {
+    const element = scrollRef.current;
+    if (!element) return;
+    element.scrollTop = positions.current[pathname] ?? 0;
+
+  }, [pathname]);
   return (
     <div className="app-shell min-h-screen bg-background">
       <header className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b border-border">
@@ -29,11 +38,18 @@ export default function Layout() {
       </nav>
         </div>
       </header>
+      <div className="screen-scroll" ref={scrollRef} onScroll={event => { positions.current[pathname] = event.currentTarget.scrollTop; }}>
       {(syncing || syncError) && <div role="status" className="max-w-6xl mx-auto px-4 py-3 text-sm text-muted-foreground">
         {syncError ? <div className="flex items-center justify-between gap-3"><span>{syncError}</span><button onClick={() => void refreshDreams()} className="underline shrink-0">Повторить</button></div> : 'Сохраняем и синхронизируем…'}
       </div>}
 
       <Outlet />
+      </div>
+      <nav className="mobile-tabs" aria-label="Разделы приложения">
+        {[...tabs.map(tab => ({ ...tab, label: tab.to === '/completed' ? 'Сбылось' : tab.to === '/stats' ? 'Прогресс' : tab.label })), { to: '/profile', label: 'Профиль', Icon: User }].map(({ to, label, Icon }) =>
+          <NavLink key={to} to={to} end aria-current={(activeTab === to || pathname === to) ? 'page' : undefined} className={(activeTab === to || pathname === to) ? 'is-active' : ''}><Icon size={22}/><span>{label}</span></NavLink>
+        )}
+      </nav>
     </div>
   );
 }
