@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
+import { shareHtml } from './server/shareHtml.mjs'
 
 
 function figmaAssetResolver() {
@@ -19,6 +20,13 @@ function figmaAssetResolver() {
 export default defineConfig({
   plugins: [
     figmaAssetResolver(),
+    {
+      name: 'friend-link-metadata',
+      transformIndexHtml(html, context) {
+        const path = (context.originalUrl || context.path).split('?')[0];
+        return shareHtml(html, path) || html;
+      },
+    },
     // The React and Tailwind plugins are both required for Make, even if
     // Tailwind is not being actively used – do not remove them
     react(),

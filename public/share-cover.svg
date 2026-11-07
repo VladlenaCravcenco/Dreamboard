@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+<rect width="1200" height="630" fill="#f3f2ed"/>
+<rect x="34" y="34" width="1132" height="562" rx="28" fill="none" stroke="#d4d3ce"/>
+<rect x="72" y="66" width="48" height="48" rx="12" fill="#171717"/>
+<path d="M92 75h8v8h8v8h8v8h-8v8h-8v-8h-8v-8h-8v-8h8z" fill="#fff"/>
+<text x="138" y="99" font-family="Arial, sans-serif" font-size="25" font-weight="700" letter-spacing="2" fill="#171717">DREAMBOARD</text>
+<text x="72" y="242" font-family="Arial, sans-serif" font-size="72" font-weight="700" fill="#171717">Подарки,</text>
+<text x="72" y="323" font-family="Arial, sans-serif" font-size="72" font-weight="700" fill="#171717">о которых</text>
+<text x="72" y="404" font-family="Arial, sans-serif" font-size="72" font-weight="700" fill="#171717">мечтают.</text>
+<text x="76" y="479" font-family="Arial, sans-serif" font-size="26" fill="#525252">Маленькие подсказки. Большая радость.</text>
+<g transform="translate(782 150) rotate(8 140 180)">
+<rect x="10" y="12" width="280" height="354" rx="24" fill="#dfded7"/>
+<rect width="280" height="354" rx="24" fill="#fff" stroke="#d4d3ce"/>
+<rect x="24" y="24" width="232" height="190" rx="16" fill="#eae8df"/>
+<path d="M84 107h112v78H84zM76 88h128v27H76z" fill="#171717"/>
+<path d="M134 88h12v97h-12z" fill="#f3f2ed"/>
+<path d="M140 88c-60 0-51-48-23-34 13 6 23 34 23 34zm0 0c60 0 51-48 23-34-13 6-23 34-23 34z" fill="none" stroke="#171717" stroke-width="9"/>
+<text x="24" y="255" font-family="Arial, sans-serif" font-size="23" font-weight="700" fill="#171717">Список желаний</text>
+<rect x="24" y="279" width="158" height="10" rx="5" fill="#deded9"/>
+<rect x="24" y="303" width="116" height="10" rx="5" fill="#deded9"/>
+<circle cx="233" cy="300" r="20" fill="#171717"/>
+<path d="m224 300 6 6 12-13" fill="none" stroke="white" stroke-width="3"/>
+</g>
+<text x="76" y="557" font-family="Arial, sans-serif" font-size="18" letter-spacing="3" fill="#666">СОХРАНЯЙТЕ СЮРПРИЗЫ</text>
+</svg>

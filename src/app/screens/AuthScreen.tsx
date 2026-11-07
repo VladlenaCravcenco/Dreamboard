@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { supabase, isDemoPreview } from '../lib/supabase';
 import React, { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router';
 import { useAuth } from '../context/AuthContext';
@@ -24,7 +24,7 @@ export default function AuthScreen() {
       });
       if (error) throw error;
     } catch {
-      toast.error('Вход через Google пока недоступен. Попробуйте позже или войдите по почте.');
+      toast.error('Не удалось начать вход через Google. Проверьте подключение и попробуйте ещё раз.');
     } finally {
       setGoogleBusy(false);
     }
@@ -40,6 +40,8 @@ export default function AuthScreen() {
 
   const { user, loading, signIn, signUp, resendConfirmation, resetPassword } = useAuth();
   const navigate = useNavigate();
+
+  if (isDemoPreview) return <Centered><div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 space-y-5"><Spark size={40}/><p className="eyebrow">Локальное демо</p><h1 className="text-2xl">Здесь вход не требуется</h1><p className="text-sm text-muted-foreground">Это отдельная версия для проверки интерфейса с тестовыми данными. Google и настоящий аккаунт доступны в основном приложении.</p><a className="block rounded-xl bg-primary text-primary-foreground p-3 text-center" href="http://localhost:5180/auth">Открыть настоящее приложение</a><a className="block text-center underline p-3" href="/">Вернуться к демо</a></div></Centered>;
 
   if (!loading && user) return <Navigate to="/" replace />;
 

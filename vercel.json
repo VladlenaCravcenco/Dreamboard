@@ -5,6 +5,14 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
+      "source": "/u/:slug",
+      "destination": "/api/share-preview?path=u/:slug"
+    },
+    {
+      "source": "/invite/:token",
+      "destination": "/api/share-preview?path=invite/:token"
+    },
+    {
       "source": "/api/:path*",
       "destination": "/api/:path*"
     },
@@ -16,6 +24,9 @@
   "functions": {
     "api/product-preview.js": {
       "maxDuration": 30
+    },
+    "api/share-preview.js": {
+      "includeFiles": "dist/index.html"
     }
   }
 }

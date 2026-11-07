@@ -269,3 +269,9 @@ input[type="file"]::file-selector-button { background: var(--foreground); color:
 
 .detail-form-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-top: 2px; }
 .detail-form-actions .detail-save-button { flex-shrink: 0; }
+
+.share-link-preview { width: 100%; overflow: hidden; border: 1px solid var(--border); border-radius: 16px; text-align: left; background: var(--card); }
+.share-link-preview img { width: 100%; height: auto; display: block; }
+.share-link-preview > div { padding: 16px; display: grid; gap: 8px; }
+.share-link-preview h3 { font-size: 16px; font-weight: 600; }
+.share-link-preview p:not(.eyebrow) { font-size: 13px; line-height: 1.6; color: var(--muted-foreground); }

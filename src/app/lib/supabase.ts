@@ -1,6 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import { projectId, publicAnonKey } from '../../../utils/supabase/info';
 
+export const isDemoPreview = false;
+
 const supabaseUrl = `https://${projectId}.supabase.co`;
 
 // Единственный экземпляр клиента — хранит сессию в localStorage автоматически

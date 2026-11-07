@@ -1,3 +1,4 @@
+export const isDemoPreview = true;
 // Isolated browser QA adapter. Only the preview builder imports this file.
 const user = { id: 'local-preview', email: 'preview@example.test', user_metadata: { name: 'Тестовый аккаунт' } };
 let rows = JSON.parse(localStorage.getItem('dreamboard_preview_rows') || '[]');

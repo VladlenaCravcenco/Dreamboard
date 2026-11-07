@@ -1,3 +1,4 @@
+import { localSnapshots } from '../lib/localSnapshot.mjs';
 import { PendingWrites } from '../lib/pendingWrites.mjs';
 import React, { createContext, useContext, useState, useEffect, useRef, useMemo, ReactNode } from 'react';
 import {
@@ -63,16 +64,6 @@ interface LocalDreamboardData {
 
 const getLocalStorageKey = (userId?: string) =>
   `dreamboard_${userId ?? 'guest'}_data`;
-
-const readLocalData = (userId?: string): LocalDreamboardData | null => {
-  try {
-    const raw = localStorage.getItem(getLocalStorageKey(userId));
-    return raw ? JSON.parse(raw) : null;
-  } catch (error) {
-    console.error('Failed to read local dreamboard:', error);
-    return null;
-  }
-};
 
 const toDatabaseDream = (dream: Dream | CompletedDream, userId: string) => ({
   id: dream.id,
@@ -150,13 +141,16 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
+  const [snapshotRetry, setSnapshotRetry] = useState(0);
   const [loadedUser, setLoadedUser] = useState<string | null>(null);
   const accountKey = user?.id ?? 'guest';
   const activeAccount = useRef(accountKey);
   activeAccount.current = accountKey;
   const revision = useRef(0);
   const queue = useMemo(() => new PendingWrites({
-    storage: localStorage,
+    storage: { getItem: (key: string) => localStorage.getItem(key), setItem: (key: string, value: string) => localStorage.setItem(key, value) },
+    keepInMemoryOnFailure: true,
     key: `dreamboard_${accountKey}_pending`,
     send: async (record: Dream) => {
       if (!record.user_id) return;
@@ -171,7 +165,7 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   useEffect(() => {
     if (authLoading) return;
-    loadLocalData();
+    void loadLocalData();
   }, [authLoading, user?.id]);
 
   useEffect(() => {
@@ -188,14 +182,16 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       theme,
     };
 
-    try {
-      localStorage.setItem(getLocalStorageKey(user?.id), JSON.stringify(data));
-    } catch (error) {
-      console.error('Failed to save local dreamboard:', error);
-      setSyncError('Не удалось сохранить копию на устройстве. Освободите место и повторите синхронизацию.');
-    }
+    let current = true;
+    void localSnapshots.write(getLocalStorageKey(user?.id), data).then(() => {
+      if (current && activeAccount.current === accountKey) setLocalError(null);
+    }).catch(() => {
+      if (current && activeAccount.current === accountKey) setLocalError('Браузер не сохранил офлайн-копию. Не закрывайте страницу до завершения синхронизации. Нажмите «Повторить».');
+    });
+    return () => { current = false; };
   }, [
     authLoading,
+    snapshotRetry,
     loadedUser,
     user?.id,
     dreams,
@@ -210,9 +206,13 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   // ─── Local-first storage ───────────────────────────────────────────────────
 
-  const loadLocalData = () => {
+  const loadLocalData = async () => {
     setLoadedUser(null);
-    const data = readLocalData(user?.id);
+    setLoading(true);
+    setLocalError(null);
+    setSyncError(null);
+    const data = await localSnapshots.read(getLocalStorageKey(user?.id)) as LocalDreamboardData | null;
+    if (activeAccount.current !== accountKey) return;
 
     setDreams(data?.dreams ?? []);
     setCompletedDreams(data?.completedDreams ?? []);
@@ -234,6 +234,7 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   const refreshDreams = async () => {
+    setSnapshotRetry(value => value + 1);
     try { await syncFromSupabase(); }
     catch { if (activeAccount.current === accountKey) setSyncError('Не удалось синхронизировать. Проверьте подключение и повторите.'); }
   };
@@ -290,7 +291,7 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       if (activeAccount.current === accountKey) setSyncError(null);
     } catch (error) {
       if (activeAccount.current === accountKey) {
-        setSyncError('Изменения ещё не сохранены в облаке. Не очищайте данные браузера; нажмите «Повторить», когда появится связь.');
+        setSyncError(queue.storageError ? 'Изменения пока только в памяти страницы: браузер не сохранил очередь, а облако недоступно. Не закрывайте страницу; нажмите «Повторить».' : 'Изменения ещё не сохранены в облаке. Не очищайте данные браузера; нажмите «Повторить», когда появится связь.');
       }
       throw error;
     } finally {
@@ -542,7 +543,7 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         theme,
         loading,
         syncing,
-        syncError,
+        syncError: syncError ?? localError,
         setQuote,
         toggleTheme,
         updateDreamProgress,
