@@ -57,7 +57,7 @@ export function AuthPanel({ initialMode = 'signin', variant = 'page', onClose }:
   return (
     <div className={`w-full max-w-md ${variant === 'inline' ? 'auth-inline' : ''}`}>
       {variant === 'inline' ? <div className="auth-inline-head">
-        <div><p className="eyebrow">Dreamboard</p><h2>{panelTitles[initialMode]}</h2></div>
+        <div><h2>{panelTitles[initialMode]}</h2></div>
         {onClose && <button type="button" onClick={onClose} className="auth-inline-close" aria-label="Закрыть">×</button>}
       </div> : <div className="text-center mb-10">
         <h1 className="text-4xl sm:text-5xl tracking-tight mb-2" style={{ fontFamily: 'var(--font-machine)', color: 'var(--foreground)' }}>

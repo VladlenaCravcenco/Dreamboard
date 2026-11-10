@@ -40,7 +40,6 @@
   .app-shell button:active, .mobile-tabs a:active { opacity: .7; }
   .app-shell h1, .app-shell .board-heading { font-size: clamp(26px, 7.5vw, 34px); letter-spacing: -.045em; line-height: 1.2; overflow-wrap: anywhere; }
   .app-shell h2 { overflow-wrap: anywhere; }
-  .app-shell .eyebrow { font-size: 11px; letter-spacing: .04em; }
   .page-header { padding: 0; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
   .page-header > div:first-child { flex: 1 1 190px; }
   .page-header .eyebrow { margin-bottom: 8px; }

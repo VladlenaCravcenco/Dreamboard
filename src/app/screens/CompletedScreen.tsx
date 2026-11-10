@@ -33,7 +33,7 @@ const CompletedScreen: React.FC = () => {
     <div className="memory-screen max-w-6xl mx-auto px-4 py-6 overflow-x-hidden">
       {celebratingId && <PixelCelebration />}
       {/* Header */}
-      <PageHeader eyebrow="Воспоминания" title="Сбылось" caption="Здесь живут мечты, которые сбылись." />
+      <PageHeader title="Сбылось" caption="Здесь живут мечты, которые сбылись." />
 
       {/* Gallery Grid */}
       {completedDreams.length > 0 ? (

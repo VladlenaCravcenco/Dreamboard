@@ -249,7 +249,6 @@ export default function LandingScreen() {
           </header>
           <div className={`landing-hero ${auth ? 'is-auth' : ''}`}>
             <div>
-              <p className="eyebrow">Мечты · желания · подарки</p>
               <h1 id="landing-title" className="board-heading">Список желаний, который помогает мечтам сбываться</h1>
               <p className="landing-lead">Сохраняйте мечты, делайте к ним маленькие шаги и делитесь вишлистом с друзьями — они тайно выберут подарок, а сюрприз сохранится.</p>
               <div className="landing-actions">
@@ -278,8 +277,7 @@ export default function LandingScreen() {
       <span id="features" className="landing-anchor"/>
       <section className="landing-slide" data-slide aria-labelledby="landing-features">
         <div className="landing-slide-inner">
-          <p className="eyebrow reveal">Возможности</p>
-          <h2 id="landing-features" className="reveal" style={delay(1)}>Всё, что нужно для мечт и подарков</h2>
+          <h2 id="landing-features" className="reveal">Всё, что нужно для мечт и подарков</h2>
           <div className="landing-grid">
             {features.map(({ Icon, title, short, text }, index) => <article key={title} className="landing-card reveal" style={delay(index + 2)}>
               <Icon size={28}/>
@@ -294,8 +292,7 @@ export default function LandingScreen() {
       <span id="how" className="landing-anchor"/>
       <section className="landing-slide" data-slide aria-labelledby="landing-steps">
         <div className="landing-slide-inner">
-          <p className="eyebrow reveal">Как это работает</p>
-          <h2 id="landing-steps" className="reveal" style={delay(1)}>Три шага от желания к воспоминанию</h2>
+          <h2 id="landing-steps" className="reveal">Три шага от желания к воспоминанию</h2>
           <ol className="landing-steps">
             {steps.map((step, index) => <li key={step.title} className="reveal" style={delay(index + 2)}>
               <span className="landing-step-number">{String(index + 1).padStart(2, '0')}</span>
@@ -318,8 +315,7 @@ export default function LandingScreen() {
       <span id="faq" className="landing-anchor"/>
       <section className="landing-slide" data-slide aria-labelledby="landing-faq">
         <div className="landing-slide-inner">
-          <p className="eyebrow reveal">Вопросы</p>
-          <h2 id="landing-faq" className="reveal" style={delay(1)}>Частые вопросы</h2>
+          <h2 id="landing-faq" className="reveal">Частые вопросы</h2>
           <div className="landing-faq">
             {faq.map((item, index) => <details key={item.q} {...{ name: 'landing-faq' }} className="reveal" style={delay(index + 2)}>
               <summary>{item.q}</summary>
