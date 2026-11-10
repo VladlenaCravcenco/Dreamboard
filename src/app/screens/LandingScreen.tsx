@@ -53,23 +53,105 @@ const delay = (i: number) => ({ '--i': i }) as CSSProperties;
 
 const prefersReducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/** Quickly rewinds the page to the first slide, then calls done. */
-function rewindToTop(done: () => void) {
-  const start = window.scrollY;
-  if (start < 4 || prefersReducedMotion()) { window.scrollTo(0, 0); done(); return; }
-  // Scroll snapping (phones) would fight the frame-by-frame scroll, so pause it meanwhile.
+const easeInOut = (t: number) => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
+
+/**
+ * Scrolls the window to `target` frame by frame. CSS scroll snapping (phones) would fight
+ * the animation, so it is paused meanwhile. Returns a function that cancels the animation.
+ */
+function animateScroll(target: number, duration: number, ease: (t: number) => number, done?: () => void) {
   const html = document.documentElement;
+  const start = window.scrollY;
+  let frame = 0;
+  const finish = () => { html.style.scrollSnapType = ''; done?.(); };
+  if (Math.abs(target - start) < 2 || prefersReducedMotion()) { window.scrollTo(0, target); finish(); return () => {}; }
   html.style.scrollSnapType = 'none';
-  const finish = () => { html.style.scrollSnapType = ''; done(); };
-  const duration = Math.min(900, 350 + start / 12);
   const began = performance.now();
-  const ease = (t: number) => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
   const step = (now: number) => {
     const t = Math.min(1, (now - began) / duration);
-    window.scrollTo(0, Math.round(start * (1 - ease(t))));
-    if (t < 1) requestAnimationFrame(step); else finish();
+    window.scrollTo(0, Math.round(start + (target - start) * ease(t)));
+    if (t < 1) frame = requestAnimationFrame(step); else finish();
   };
-  requestAnimationFrame(step);
+  frame = requestAnimationFrame(step);
+  return () => { cancelAnimationFrame(frame); html.style.scrollSnapType = ''; };
+}
+
+/** Quickly rewinds the page to the first slide, then calls done. */
+function rewindToTop(done: () => void) {
+  animateScroll(0, Math.min(900, 350 + window.scrollY / 12), easeInOut, done);
+}
+
+/**
+ * Phones: every swipe moves exactly one slide. The page follows the finger while dragging;
+ * on release a short or fast swipe settles on the next/previous slide, a tiny one springs back.
+ * Horizontal swipes (the features row) and taps are left to the browser.
+ */
+function useSwipePaging(enabled: boolean) {
+  useEffect(() => {
+    if (!enabled || prefersReducedMotion() || !window.matchMedia('(max-width: 767px)').matches) return;
+    const slideHeight = () => document.querySelector<HTMLElement>('.landing [data-slide]')?.offsetHeight || window.innerHeight;
+    const maxScroll = () => document.documentElement.scrollHeight - window.innerHeight;
+    let startY = 0, startX = 0, startScroll = 0, index = 0, axis: 'x' | 'y' | null = null;
+    let samples: { y: number; t: number }[] = [];
+    let cancel: (() => void) | null = null;
+    let target: number | null = null;
+
+    const onStart = (event: TouchEvent) => {
+      if (event.touches.length !== 1) return;
+      const height = slideHeight();
+      // A swipe during the settle animation continues from the slide it was heading to.
+      index = target ?? Math.round(window.scrollY / height);
+      cancel?.(); cancel = null; target = null;
+      startY = event.touches[0].clientY; startX = event.touches[0].clientX;
+      startScroll = window.scrollY; axis = null;
+      samples = [{ y: startY, t: event.timeStamp }];
+    };
+    const onMove = (event: TouchEvent) => {
+      if (event.touches.length !== 1) return;
+      const { clientX, clientY } = event.touches[0];
+      const dy = clientY - startY, dx = clientX - startX;
+      if (!axis) {
+        if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+        axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+        if (axis === 'y') document.documentElement.style.scrollSnapType = 'none';
+      }
+      if (axis !== 'y') return;
+      event.preventDefault();
+      window.scrollTo(0, Math.max(0, Math.min(maxScroll(), startScroll - dy)));
+      samples.push({ y: clientY, t: event.timeStamp });
+      if (samples.length > 6) samples.shift();
+    };
+    const onEnd = (event: TouchEvent) => {
+      if (axis !== 'y') { axis = null; return; }
+      axis = null;
+      const height = slideHeight();
+      const dy = (event.changedTouches[0]?.clientY ?? startY) - startY;
+      const first = samples[0], last = samples[samples.length - 1];
+      const velocity = last && first && last.t > first.t ? (last.y - first.y) / (last.t - first.t) : 0;
+      let next = index;
+      if (dy < -40 || velocity < -0.35) next = index + 1;
+      else if (dy > 40 || velocity > 0.35) next = index - 1;
+      const count = document.querySelectorAll('.landing [data-slide]').length;
+      next = Math.max(0, Math.min(count - 1, next));
+      target = next;
+      const destination = Math.min(maxScroll(), next * height);
+      const distance = Math.abs(destination - window.scrollY);
+      cancel = animateScroll(destination, Math.max(260, Math.min(520, distance * .9)), easeOut, () => { cancel = null; target = null; });
+    };
+
+    window.addEventListener('touchstart', onStart, { passive: true });
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('touchend', onEnd, { passive: true });
+    window.addEventListener('touchcancel', onEnd, { passive: true });
+    return () => {
+      cancel?.();
+      window.removeEventListener('touchstart', onStart);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onEnd);
+      window.removeEventListener('touchcancel', onEnd);
+    };
+  }, [enabled]);
 }
 
 /**
@@ -135,6 +217,7 @@ export default function LandingScreen() {
   const authBox = useRef<HTMLDivElement>(null);
   const [auth, setAuth] = useState<Mode | null>(null);
   useStackedSlides(root, !auth);
+  useSwipePaging(!auth);
   useEffect(() => { if (auth) authBox.current?.focus({ preventScroll: true }); }, [auth]);
   const goTo = (event: React.MouseEvent<HTMLAnchorElement>, id: string) => {
     event.preventDefault();
