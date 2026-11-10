@@ -57,22 +57,31 @@ const prefersReducedMotion = () => window.matchMedia('(prefers-reduced-motion: r
 function rewindToTop(done: () => void) {
   const start = window.scrollY;
   if (start < 4 || prefersReducedMotion()) { window.scrollTo(0, 0); done(); return; }
+  // Scroll snapping (phones) would fight the frame-by-frame scroll, so pause it meanwhile.
+  const html = document.documentElement;
+  html.style.scrollSnapType = 'none';
+  const finish = () => { html.style.scrollSnapType = ''; done(); };
   const duration = Math.min(900, 350 + start / 12);
   const began = performance.now();
   const ease = (t: number) => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
   const step = (now: number) => {
     const t = Math.min(1, (now - began) / duration);
     window.scrollTo(0, Math.round(start * (1 - ease(t))));
-    if (t < 1) requestAnimationFrame(step); else done();
+    if (t < 1) requestAnimationFrame(step); else finish();
   };
   requestAnimationFrame(step);
 }
 
-/** Sticky full-screen slides: each next slide covers the previous one, which shrinks and dims. */
-function useStackedSlides(root: React.RefObject<HTMLDivElement | null>) {
+/**
+ * Sticky full-screen slides: each next slide covers the previous one, which shrinks and dims.
+ * On phones every slide is exactly one screen tall and scrolling snaps slide by slide (CSS,
+ * via the landing-snap class). Disabled while the sign-up form is open, so the on-screen
+ * keyboard does not shift the stack.
+ */
+function useStackedSlides(root: React.RefObject<HTMLDivElement | null>, enabled: boolean) {
   useEffect(() => {
     const element = root.current;
-    if (!element || prefersReducedMotion()) return;
+    if (!element || !enabled || prefersReducedMotion()) return;
     const sections = Array.from(element.querySelectorAll<HTMLElement>('[data-slide]'));
     const links = Array.from(element.querySelectorAll<HTMLAnchorElement>('[data-slide-link]'));
     let frame = 0;
@@ -105,6 +114,7 @@ function useStackedSlides(root: React.RefObject<HTMLDivElement | null>) {
     }), { threshold: 0.15 });
     element.querySelectorAll('.reveal').forEach(item => reveal.observe(item));
     element.classList.add('is-stacked');
+    document.documentElement.classList.add('landing-snap');
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', layout);
     layout();
@@ -115,15 +125,16 @@ function useStackedSlides(root: React.RefObject<HTMLDivElement | null>) {
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', layout);
       element.classList.remove('is-stacked');
+      document.documentElement.classList.remove('landing-snap');
     };
-  }, [root]);
+  }, [root, enabled]);
 }
 
 export default function LandingScreen() {
   const root = useRef<HTMLDivElement>(null);
   const authBox = useRef<HTMLDivElement>(null);
   const [auth, setAuth] = useState<Mode | null>(null);
-  useStackedSlides(root);
+  useStackedSlides(root, !auth);
   useEffect(() => { if (auth) authBox.current?.focus({ preventScroll: true }); }, [auth]);
   const goTo = (event: React.MouseEvent<HTMLAnchorElement>, id: string) => {
     event.preventDefault();
@@ -144,7 +155,7 @@ export default function LandingScreen() {
 
     <main>
       <span id="start" className="landing-anchor"/>
-      <section className="landing-slide landing-slide-hero" data-slide aria-labelledby="landing-title">
+      <section className={`landing-slide landing-slide-hero ${auth ? 'is-auth' : ''}`} data-slide aria-labelledby="landing-title">
         <div className="landing-slide-inner">
           <header className="landing-header">
             <Link to="/" className="brand"><span className="brand-symbol"><Spark size={24}/></span>Dreamboard</Link>
@@ -226,7 +237,7 @@ export default function LandingScreen() {
           <p className="eyebrow reveal">Вопросы</p>
           <h2 id="landing-faq" className="reveal" style={delay(1)}>Частые вопросы</h2>
           <div className="landing-faq">
-            {faq.map((item, index) => <details key={item.q} className="reveal" style={delay(index + 2)}>
+            {faq.map((item, index) => <details key={item.q} {...{ name: 'landing-faq' }} className="reveal" style={delay(index + 2)}>
               <summary>{item.q}</summary>
               <p>{item.a}</p>
             </details>)}
