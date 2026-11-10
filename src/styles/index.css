@@ -338,6 +338,17 @@ input[type="file"]::file-selector-button { background: var(--foreground); color:
 .landing-footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; width: 100%; max-width: 72rem; margin: 0 auto; padding: 24px 16px 32px; border-top: 1px solid color-mix(in srgb, currentColor 18%, transparent); font-size: 13px; opacity: .7; }
 .landing-footer nav { display: flex; gap: 20px; }
 
+.landing-auth { outline: none; animation: landing-auth-in .55s cubic-bezier(.2, .7, .2, 1) both; }
+.landing-auth > div { margin-left: auto; }
+.auth-inline-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.auth-inline-head .eyebrow { margin-bottom: 6px; }
+.auth-inline-head h2 { font-size: 24px; line-height: 1.2; margin: 0; }
+.auth-inline-close { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; border-radius: 99px; border: 1px solid var(--border); background: var(--card); font-size: 22px; line-height: 1; }
+.auth-inline-close:hover { background: var(--muted-bg); }
+.auth-inline > .rounded-2xl { box-shadow: 0 30px 60px -30px rgba(0, 0, 0, .35); }
+@keyframes landing-auth-in { from { opacity: 0; transform: translateY(24px) scale(.97); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .landing-auth { animation: none; } }
+
 /* Side pager (desktop) */
 .landing-pager { position: fixed; z-index: 60; right: 24px; top: 50%; transform: translateY(-50%); display: grid; gap: 10px; mix-blend-mode: difference; }
 .landing-pager a { display: block; width: 10px; height: 10px; border-radius: 99px; background: #fff; opacity: .35; transition: opacity .3s, height .3s; }
@@ -361,6 +372,9 @@ input[type="file"]::file-selector-button { background: var(--foreground); color:
 
 @media (max-width: 900px) {
   .landing-hero { grid-template-columns: 1fr; gap: 40px; }
+  .landing-hero.is-auth { gap: 0; }
+  .landing-hero.is-auth > div:first-child { display: none; }
+  .landing-auth > div { margin: 0 auto; }
   .landing-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .landing-steps { grid-template-columns: 1fr; }
 }

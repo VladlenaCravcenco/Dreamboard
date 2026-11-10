@@ -5,11 +5,39 @@ import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
 import { Spark } from '../components/PixelIcons';
 
-type Mode = 'signin' | 'signup' | 'forgot';
+export type Mode = 'signin' | 'signup' | 'forgot';
 
 export default function AuthScreen() {
   const [searchParams] = useSearchParams();
-  const [mode, setMode] = useState<Mode>(() => searchParams.get('mode') === 'signup' ? 'signup' : 'signin');
+  const { user, loading } = useAuth();
+
+  if (isDemoPreview) return <Centered><div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 space-y-5"><Spark size={40}/><p className="eyebrow">Локальное демо</p><h1 className="text-2xl">Здесь вход не требуется</h1><p className="text-sm text-muted-foreground">Это отдельная версия для проверки интерфейса с тестовыми данными. Google и настоящий аккаунт доступны в основном приложении.</p><a className="block rounded-xl bg-primary text-primary-foreground p-3 text-center" href="http://localhost:5180/auth">Открыть настоящее приложение</a><a className="block text-center underline p-3" href="/">Вернуться к демо</a></div></Centered>;
+
+  if (!loading && user) return <Navigate to="/" replace />;
+
+  if (loading) {
+    return (
+      <Centered>
+        <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin"
+          style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }} />
+        <p style={{ fontFamily: 'var(--font-machine)', color: 'var(--foreground)', opacity: 0.5 }}>
+          Загрузка…
+        </p>
+      </Centered>
+    );
+  }
+
+  return <Centered><AuthPanel initialMode={searchParams.get('mode') === 'signup' ? 'signup' : 'signin'} /></Centered>;
+}
+
+const panelTitles: Record<Mode, string> = { signin: 'Вход в Dreamboard', signup: 'Создайте свой Dreamboard', forgot: 'Восстановление пароля' };
+
+/**
+ * Sign-in / sign-up / password-reset form. Used by /auth (variant "page", with the big logo)
+ * and inline on the landing page (variant "inline", compact title and a close button).
+ */
+export function AuthPanel({ initialMode = 'signin', variant = 'page', onClose }: { initialMode?: Mode; variant?: 'page' | 'inline'; onClose?: () => void }) {
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -39,29 +67,13 @@ export default function AuthScreen() {
     banner?: string;
   }>({});
 
-  const { user, loading, signIn, signUp, resendConfirmation, resetPassword } = useAuth();
+  const { signIn, signUp, resendConfirmation, resetPassword } = useAuth();
   const navigate = useNavigate();
-
-  if (isDemoPreview) return <Centered><div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 space-y-5"><Spark size={40}/><p className="eyebrow">Локальное демо</p><h1 className="text-2xl">Здесь вход не требуется</h1><p className="text-sm text-muted-foreground">Это отдельная версия для проверки интерфейса с тестовыми данными. Google и настоящий аккаунт доступны в основном приложении.</p><a className="block rounded-xl bg-primary text-primary-foreground p-3 text-center" href="http://localhost:5180/auth">Открыть настоящее приложение</a><a className="block text-center underline p-3" href="/">Вернуться к демо</a></div></Centered>;
-
-  if (!loading && user) return <Navigate to="/" replace />;
-
-  if (loading) {
-    return (
-      <Centered>
-        <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin"
-          style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }} />
-        <p style={{ fontFamily: 'var(--font-machine)', color: 'var(--foreground)', opacity: 0.5 }}>
-          Загрузка…
-        </p>
-      </Centered>
-    );
-  }
 
   // ── Экран "письмо отправлено" ─────────────────────────────────────────────
   if (pendingEmail) {
     return (
-      <Centered>
+      <>
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <div className="mb-4 flex justify-center"><Spark size={48} /></div>
@@ -120,7 +132,7 @@ export default function AuthScreen() {
             </div>
           </div>
         </div>
-      </Centered>
+      </>
     );
   }
 
@@ -187,11 +199,12 @@ export default function AuthScreen() {
   const switchMode = (m: Mode) => { setMode(m); clearErrors(); };
 
   return (
-    <Centered>
-      <div className="w-full max-w-md">
+    <div className={`w-full max-w-md ${variant === 'inline' ? 'auth-inline' : ''}`}>
 
-        {/* Логотип */}
-        <div className="text-center mb-10">
+        {variant === 'inline' ? <div className="auth-inline-head">
+          <div><p className="eyebrow">Dreamboard</p><h2>{panelTitles[mode]}</h2></div>
+          {onClose && <button type="button" onClick={onClose} className="auth-inline-close" aria-label="Закрыть форму">×</button>}
+        </div> : <div className="text-center mb-10">
           <h1 className="text-4xl sm:text-5xl tracking-tight mb-2"
             style={{ fontFamily: 'var(--font-machine)', color: 'var(--foreground)' }}>
             <Link to="/">Dreamboard</Link>
@@ -201,7 +214,7 @@ export default function AuthScreen() {
             {mode === 'signup' && 'Создайте свой Dreamboard'}
             {mode === 'forgot' && 'Восстановление пароля'}
           </p>
-        </div>
+        </div>}
 
         {/* Карточка */}
         <div className="rounded-2xl border border-border p-6 sm:p-8"
@@ -292,12 +305,11 @@ export default function AuthScreen() {
 
           <div className="mt-6 pt-5 text-center" style={{ borderTop: '1px solid rgba(0,0,0,0.05)' }}>
             <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
-              Личное пространство для ваших мечт · <Link to="/" className="underline underline-offset-4">Что такое Dreamboard</Link>
+              Личное пространство для ваших мечт{variant === 'page' && <> · <Link to="/" className="underline underline-offset-4">Что такое Dreamboard</Link></>}
             </p>
           </div>
         </div>
       </div>
-    </Centered>
   );
 }
 

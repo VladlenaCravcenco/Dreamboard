@@ -1,7 +1,8 @@
-import { useEffect, useRef, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Link } from 'react-router';
 import { Spark, LayoutGrid, Check, Gift, Heart, Lock } from '../components/PixelIcons';
 import { siteDescription } from '../lib/siteMeta.mjs';
+import { AuthPanel, type Mode } from './AuthScreen';
 
 // Rendered for guests on "/" and prerendered into dist/index.html (scripts/prerender.mjs),
 // so it must not use auth/dream contexts or browser-only APIs during render.
@@ -50,11 +51,28 @@ const structuredData = JSON.stringify([
 
 const delay = (i: number) => ({ '--i': i }) as CSSProperties;
 
+const prefersReducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/** Quickly rewinds the page to the first slide, then calls done. */
+function rewindToTop(done: () => void) {
+  const start = window.scrollY;
+  if (start < 4 || prefersReducedMotion()) { window.scrollTo(0, 0); done(); return; }
+  const duration = Math.min(900, 350 + start / 12);
+  const began = performance.now();
+  const ease = (t: number) => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  const step = (now: number) => {
+    const t = Math.min(1, (now - began) / duration);
+    window.scrollTo(0, Math.round(start * (1 - ease(t))));
+    if (t < 1) requestAnimationFrame(step); else done();
+  };
+  requestAnimationFrame(step);
+}
+
 /** Sticky full-screen slides: each next slide covers the previous one, which shrinks and dims. */
 function useStackedSlides(root: React.RefObject<HTMLDivElement | null>) {
   useEffect(() => {
     const element = root.current;
-    if (!element || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (!element || prefersReducedMotion()) return;
     const sections = Array.from(element.querySelectorAll<HTMLElement>('[data-slide]'));
     const links = Array.from(element.querySelectorAll<HTMLAnchorElement>('[data-slide-link]'));
     let frame = 0;
@@ -103,11 +121,20 @@ function useStackedSlides(root: React.RefObject<HTMLDivElement | null>) {
 
 export default function LandingScreen() {
   const root = useRef<HTMLDivElement>(null);
+  const authBox = useRef<HTMLDivElement>(null);
+  const [auth, setAuth] = useState<Mode | null>(null);
   useStackedSlides(root);
+  useEffect(() => { if (auth) authBox.current?.focus({ preventScroll: true }); }, [auth]);
   const goTo = (event: React.MouseEvent<HTMLAnchorElement>, id: string) => {
     event.preventDefault();
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    document.getElementById(id)?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth' });
+    document.getElementById(id)?.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
+  };
+  // Sign-up / sign-in buttons rewind the slides to the first screen and open the form there.
+  // The links still point to /auth, so they work without JavaScript.
+  const openAuth = (mode: Mode) => (event: React.MouseEvent<HTMLAnchorElement>) => {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
+    event.preventDefault();
+    rewindToTop(() => setAuth(mode));
   };
 
   return <div className="landing" ref={root}>
@@ -122,21 +149,23 @@ export default function LandingScreen() {
           <header className="landing-header">
             <Link to="/" className="brand"><span className="brand-symbol"><Spark size={24}/></span>Dreamboard</Link>
             <nav aria-label="Аккаунт" className="landing-header-actions">
-              <Link to="/auth" className="landing-link">Войти</Link>
-              <Link to="/auth?mode=signup" className="landing-cta landing-cta-small">Начать</Link>
+              <Link to="/auth" className="landing-link" onClick={openAuth('signin')}>Войти</Link>
+              <Link to="/auth?mode=signup" className="landing-cta landing-cta-small" onClick={openAuth('signup')}>Начать</Link>
             </nav>
           </header>
-          <div className="landing-hero">
+          <div className={`landing-hero ${auth ? 'is-auth' : ''}`}>
             <div>
               <p className="eyebrow">Мечты · желания · подарки</p>
               <h1 id="landing-title" className="board-heading">Список желаний, который помогает мечтам сбываться</h1>
               <p className="landing-lead">Сохраняйте мечты, делайте к ним маленькие шаги и делитесь вишлистом с друзьями — они тайно выберут подарок, а сюрприз сохранится.</p>
               <div className="landing-actions">
-                <Link to="/auth?mode=signup" className="landing-cta">Создать свой Dreamboard</Link>
-                <Link to="/auth" className="landing-secondary">У меня уже есть аккаунт</Link>
+                <Link to="/auth?mode=signup" className="landing-cta" onClick={openAuth('signup')}>Создать свой Dreamboard</Link>
+                <Link to="/auth" className="landing-secondary" onClick={openAuth('signin')}>У меня уже есть аккаунт</Link>
               </div>
             </div>
-            <div className="landing-preview" aria-hidden="true">
+            {auth ? <div ref={authBox} tabIndex={-1} className="landing-auth" role="region" aria-label="Вход и регистрация">
+              <AuthPanel key={auth} variant="inline" initialMode={auth} onClose={() => setAuth(null)}/>
+            </div> : <div className="landing-preview" aria-hidden="true">
               {demoDreams.map(dream => <div key={dream.title} className="landing-preview-card">
                 <div className="landing-preview-cover"><Spark size={40}/></div>
                 <div>
@@ -146,7 +175,7 @@ export default function LandingScreen() {
                   <div className="landing-preview-bar"><span style={{ width: `${Math.round(dream.done / dream.total * 100)}%` }}/></div>
                 </div>
               </div>)}
-            </div>
+            </div>}
           </div>
           <a href="#features" className="landing-scroll-hint" onClick={event => goTo(event, 'features')}>Листайте вниз <span aria-hidden="true">↓</span></a>
         </div>
@@ -211,11 +240,11 @@ export default function LandingScreen() {
           <Spark size={48} className="reveal"/>
           <h2 id="landing-final" className="reveal" style={delay(1)}>С чего начнётся ваша история?</h2>
           <p className="reveal" style={delay(2)}>Добавьте то, чего давно хочется. Большой план пока не нужен.</p>
-          <Link to="/auth?mode=signup" className="landing-cta reveal" style={delay(3)}>Создать свой Dreamboard</Link>
+          <Link to="/auth?mode=signup" className="landing-cta reveal" style={delay(3)} onClick={openAuth('signup')}>Создать свой Dreamboard</Link>
         </div>
         <footer className="landing-footer">
           <span>© Dreamboard</span>
-          <nav aria-label="Ссылки в подвале"><Link to="/auth">Войти</Link><Link to="/auth?mode=signup">Регистрация</Link></nav>
+          <nav aria-label="Ссылки в подвале"><Link to="/auth" onClick={openAuth('signin')}>Войти</Link><Link to="/auth?mode=signup" onClick={openAuth('signup')}>Регистрация</Link></nav>
         </footer>
       </section>
     </main>
