@@ -1,6 +1,6 @@
 import { supabase, isDemoPreview } from '../lib/supabase';
 import React, { useState } from 'react';
-import { Navigate, useNavigate } from 'react-router';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
 import { Spark } from '../components/PixelIcons';
@@ -8,7 +8,8 @@ import { Spark } from '../components/PixelIcons';
 type Mode = 'signin' | 'signup' | 'forgot';
 
 export default function AuthScreen() {
-  const [mode, setMode] = useState<Mode>('signin');
+  const [searchParams] = useSearchParams();
+  const [mode, setMode] = useState<Mode>(() => searchParams.get('mode') === 'signup' ? 'signup' : 'signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -193,7 +194,7 @@ export default function AuthScreen() {
         <div className="text-center mb-10">
           <h1 className="text-4xl sm:text-5xl tracking-tight mb-2"
             style={{ fontFamily: 'var(--font-machine)', color: 'var(--foreground)' }}>
-            Dreamboard
+            <Link to="/">Dreamboard</Link>
           </h1>
           <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
             {mode === 'signin' && 'Войдите в свой аккаунт'}
@@ -291,7 +292,7 @@ export default function AuthScreen() {
 
           <div className="mt-6 pt-5 text-center" style={{ borderTop: '1px solid rgba(0,0,0,0.05)' }}>
             <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
-              Личное пространство для ваших мечт
+              Личное пространство для ваших мечт · <Link to="/" className="underline underline-offset-4">Что такое Dreamboard</Link>
             </p>
           </div>
         </div>

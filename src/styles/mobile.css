@@ -29,7 +29,7 @@
   .app-shell > header > div > div { margin: 0; min-height: 52px; }
   .app-shell .brand { font-size: 13px; letter-spacing: -.03em; }
   .app-shell .brand-symbol { width: 28px; height: 28px; }
-  .app-shell header .notebook-tabs, .app-shell header a[aria-label="Мой аккаунт"] { display: none; }
+  .app-shell header .notebook-tabs, .app-shell header a[aria-label="Профиль"] { display: none; }
   .screen-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior-y: contain; scroll-padding-block: 16px; }
   .screen-scroll > main, .screen-scroll > .memory-screen { width: 100%; padding: 24px max(16px, env(safe-area-inset-right)) 32px max(16px, env(safe-area-inset-left)); }
   .mobile-tabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); flex-shrink: 0; padding: 6px 8px max(8px, env(safe-area-inset-bottom)); background: var(--card); border-top: 1px solid var(--border); }
@@ -41,12 +41,12 @@
   .app-shell h1, .app-shell .board-heading { font-size: clamp(26px, 7.5vw, 34px); letter-spacing: -.045em; line-height: 1.2; overflow-wrap: anywhere; }
   .app-shell h2 { overflow-wrap: anywhere; }
   .app-shell .eyebrow { font-size: 11px; letter-spacing: .04em; }
-  .board-intro { padding: 0; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
-  .board-intro > div { flex: 1 1 190px; }
-  .board-counter { margin-bottom: 8px; }
-  .board-heading { margin-bottom: 8px; }
+  .page-header { padding: 0; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
+  .page-header > div:first-child { flex: 1 1 190px; }
+  .page-header .eyebrow { margin-bottom: 8px; }
+  .page-header .board-heading, .board-heading { margin-bottom: 8px; }
   .board-add { border-radius: 12px !important; padding: 12px 16px; }
-  .board-caption { font-size: 13px; }
+  .page-caption { font-size: 13px; }
   .app-shell main .mobile-next-step { display: grid; gap: 8px; padding: 20px; margin-bottom: 24px; border-radius: var(--mobile-radius); background: var(--foreground); color: var(--card); }
   .mobile-next-step .eyebrow, .mobile-next-step > p { color: inherit; }
   .mobile-next-step > p:not(.eyebrow) { font-size: 13px; opacity: .8; overflow-wrap: anywhere; }

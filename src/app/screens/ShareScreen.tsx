@@ -8,6 +8,7 @@ import { useDreams } from '../context/DreamContext';
 import { wishes, namedInvitePath, type ShareSettings } from '../lib/wishes';
 import { fieldClass, primaryClass } from '../components/AddDreamModal';
 import { toast } from 'sonner';
+import PageHeader from '../components/PageHeader';
 
 export default function ShareScreen() {
  const {user}=useAuth();const {dreams}=useDreams();
@@ -21,7 +22,7 @@ export default function ShareScreen() {
  const path=settings?.slug?namedInvitePath(settings.slug):'';
  const url=path?publicShareUrl(path):'';
  async function save(){setBusy(true);setSaveError('');try{const s=await saveAutomaticLink(args=>wishes<ShareSettings>('wish_configure_named',args),{p_name:name.trim(),p_enabled:true,p_future:future,p_dream_ids:ids},settings?.slug);setSettings(s);fill(s);setCopied(false);setEditing(false);}catch(e){setSaveError((e as Error).message);}finally{setBusy(false);}}
- return <main className="share-screen max-w-xl mx-auto px-4 py-6 space-y-6"><Link to="/friends" className="text-sm text-muted-foreground">← Друзья</Link><h1 className="text-3xl">Моя ссылка</h1>
+ return <main className="share-screen max-w-xl mx-auto px-4 py-6 space-y-6"><Link to="/friends" className="page-back">← Друзья</Link><PageHeader title="Моя ссылка" caption="Друзья увидят только те желания, которые вы выберете."/>
  {loading?<p role="status">Загружаем…</p>:error?<div role="alert"><p>{error}</p><button className={fieldClass} onClick={load}>Повторить</button></div>:<>
  {editing?<form className="bg-card border border-border rounded-2xl p-5 grid gap-5" onSubmit={e=>{e.preventDefault();void save();}}>
  <label className="dream-create-field">Имя для друзей<input required maxLength={100} disabled={busy} value={name} onChange={e=>setName(e.target.value)} className={fieldClass}/></label>

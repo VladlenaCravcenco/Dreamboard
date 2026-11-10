@@ -9,3 +9,6 @@
 
   Run `npm run dev` to start the development server.
   
+  ## SEO
+
+  `npm run build` also runs `scripts/prerender.mjs`: the guest landing page (`src/app/screens/LandingScreen.tsx`) is rendered into `dist/index.html` for `/`, and every other route is served from `dist/app.html` with `noindex`. When the site moves to its own domain, update `publicOrigin` in `src/app/lib/shareMetadata.mjs`, `public/robots.txt` and `public/sitemap.xml`.

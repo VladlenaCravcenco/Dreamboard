@@ -1,5 +1,7 @@
-import { Navigate, Outlet } from 'react-router';
+import { Navigate, Outlet, useLocation } from 'react-router';
 import { useAuth } from '../context/AuthContext';
+import LandingScreen from '../screens/LandingScreen';
+import { hasStoredSession } from '../lib/storedSession';
 
 /**
  * Guards all authenticated routes.
@@ -8,6 +10,8 @@ import { useAuth } from '../context/AuthContext';
  *  loading = true  → show spinner (auth state not yet resolved from localStorage)
  *  loading = false, user = null → redirect to /auth
  *  loading = false, user exists → render the app
+ *  Guests on "/" see the public landing instead of being redirected; while
+ *  loading, the landing is shown unless a stored session suggests a return.
  * 
  * IMPORTANT: we never redirect while loading is true, because:
  *  - signIn sets user synchronously before navigate() is called
@@ -15,6 +19,9 @@ import { useAuth } from '../context/AuthContext';
  */
 export default function ProtectedRoute() {
   const { user, loading } = useAuth();
+  const { pathname } = useLocation();
+
+  if (pathname === '/' && !user && (!loading || !hasStoredSession())) return <LandingScreen />;
 
   if (loading) {
     return (

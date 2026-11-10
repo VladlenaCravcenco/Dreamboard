@@ -1,13 +1,13 @@
 import { useLayoutEffect, useRef } from 'react';
 import { Outlet, NavLink, useLocation } from 'react-router';
-import { Moon, Sun, User, LayoutGrid, Heart, BarChart3, Spark } from './PixelIcons';
+import { Moon, Sun, User, Users, LayoutGrid, Heart, BarChart3, Spark } from './PixelIcons';
 import { useDreams } from '../context/DreamContext';
 
 const tabs = [
   { to: '/', label: 'Мечты', Icon: LayoutGrid },
-  { to: '/completed', label: 'Воспоминания', Icon: Heart },
-  { to: '/friends', label: 'Друзья', Icon: User },
-  { to: '/stats', label: 'Статистика', Icon: BarChart3 },
+  { to: '/completed', label: 'Сбылось', Icon: Heart },
+  { to: '/friends', label: 'Друзья', Icon: Users },
+  { to: '/stats', label: 'Прогресс', Icon: BarChart3 },
 ];
 
 export default function Layout() {
@@ -30,7 +30,7 @@ export default function Layout() {
             <NavLink to="/" className="brand"><span className="brand-symbol"><Spark size={24}/></span>Dreamboard</NavLink>
             <div className="flex gap-2">
               <button onClick={toggleTheme} aria-label={theme === 'light' ? 'Тёмная тема' : 'Светлая тема'} className="p-3 rounded-full hover:bg-muted">{theme === 'light' ? <Moon size={18}/> : <Sun size={18}/>}</button>
-              <NavLink to="/profile" aria-label="Мой аккаунт" className="p-3 rounded-full hover:bg-muted"><User size={18}/></NavLink>
+              <NavLink to="/profile" aria-label="Профиль" title="Профиль" className="p-3 rounded-full hover:bg-muted"><User size={18}/></NavLink>
             </div>
           </div>
       <nav aria-label="Основные разделы" className="notebook-tabs">
@@ -46,7 +46,7 @@ export default function Layout() {
       <Outlet />
       </div>
       <nav className="mobile-tabs" aria-label="Разделы приложения">
-        {[...tabs.map(tab => ({ ...tab, label: tab.to === '/completed' ? 'Сбылось' : tab.to === '/stats' ? 'Прогресс' : tab.label })), { to: '/profile', label: 'Профиль', Icon: User }].map(({ to, label, Icon }) =>
+        {[...tabs, { to: '/profile', label: 'Профиль', Icon: User }].map(({ to, label, Icon }) =>
           <NavLink key={to} to={to} end aria-current={(activeTab === to || pathname === to) ? 'page' : undefined} className={(activeTab === to || pathname === to) ? 'is-active' : ''}><Icon size={22}/><span>{label}</span></NavLink>
         )}
       </nav>

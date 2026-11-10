@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
   <meta name="referrer" content="no-referrer">
-  <meta name="description" content="Сохраняйте мечты, делайте маленькие шаги и собирайте воспоминания">
+  <meta name="description" content="Сохраняйте мечты и желания, делайте маленькие шаги к ним и делитесь вишлистом с друзьями: они тайно выберут подарок, а сюрприз сохранится.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Dreamboard">
   <meta property="og:locale" content="ru_RU">
@@ -20,7 +20,22 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Dreamboard">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>Dreamboard — мечты и воспоминания</title>
+  <title>Dreamboard — список желаний, мечты и вишлист для друзей</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+  <!-- Returning users: hide the prerendered guest landing until the app restores the session (see src/app/lib/storedSession.ts). -->
+  <style>.has-session [data-prerendered] { display: none; }</style>
+  <script>
+    try {
+      if (/access_token=|refresh_token=/.test(location.hash) || /[?&]code=/.test(location.search) ||
+          Object.keys(localStorage).some(function (key) { return key.indexOf('sb-') === 0 && /-auth-token$/.test(key); })) {
+        document.documentElement.classList.add('has-session');
+      }
+    } catch (e) {}
+  </script>
   
   <!-- PWA Manifest -->
   <link rel="manifest" href="/manifest.json">

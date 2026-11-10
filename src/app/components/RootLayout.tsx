@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { AuthProvider } from '../context/AuthContext';
 import { DreamProvider } from '../context/DreamContext';
 import { Toaster } from './ui/sonner';
+import RouteTitle from './RouteTitle';
 
 function ResumeInvite() {
   const { user } = useAuth();
@@ -23,6 +24,7 @@ export default function RootLayout() {
     <AuthProvider>
       <DreamProvider>
         <ResumeInvite />
+        <RouteTitle />
         <Outlet />
         <Toaster position="top-right" />
       </DreamProvider>

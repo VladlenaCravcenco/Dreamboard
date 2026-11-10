@@ -5,6 +5,7 @@ import { useDreams } from '../context/DreamContext';
 import { motion, useReducedMotion } from 'motion/react';
 import CompletedDreamModal from '../components/CompletedDreamModal';
 import { CompletedDream } from '../types';
+import PageHeader from '../components/PageHeader';
 
 const CompletedScreen: React.FC = () => {
   const location = useLocation();
@@ -29,20 +30,10 @@ const CompletedScreen: React.FC = () => {
   };
 
   return (
-    <div className="memory-screen max-w-6xl mx-auto px-6 py-8 overflow-x-hidden">
+    <div className="memory-screen max-w-6xl mx-auto px-4 py-6 overflow-x-hidden">
       {celebratingId && <PixelCelebration />}
       {/* Header */}
-      <div className="mb-8">
-        <h1
-          className="board-heading mb-4"
-          style={{ fontFamily: 'var(--font-machine)' }}
-        >
-          Воспоминания
-        </h1>
-        <p className="text-muted-foreground">
-          Здесь живут мечты, которые сбылись.
-        </p>
-      </div>
+      <PageHeader eyebrow="Воспоминания" title="Сбылось" caption="Здесь живут мечты, которые сбылись." />
 
       {/* Gallery Grid */}
       {completedDreams.length > 0 ? (
