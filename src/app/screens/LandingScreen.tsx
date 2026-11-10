@@ -10,10 +10,10 @@ import { AuthPanel, type Mode } from './AuthScreen';
 // below turns the sections into full-screen slides that stack over each other on scroll.
 
 const features = [
-  { Icon: LayoutGrid, title: 'Доска мечт', text: 'Путешествия, вещи, впечатления, учёба и забота о себе — всё, чего хочется, в одном месте. С фото, описанием и категориями.' },
-  { Icon: Check, title: 'Маленькие шаги', text: 'Разбейте большую мечту на шаги и отмечайте прогресс. Можно указать бюджет и записывать, сколько уже накоплено.' },
-  { Icon: Gift, title: 'Вишлист для друзей', text: 'Поделитесь списком желаний по ссылке. Друзья бронируют подарки, чтобы они не повторялись, а вы не узнаете, кто что выбрал.' },
-  { Icon: Heart, title: 'Воспоминания', text: 'Когда мечта сбылась, отметьте её и добавьте фото. Так собирается коллекция того, что уже случилось.' },
+  { Icon: LayoutGrid, title: 'Доска мечт', short: 'Все желания в одном месте — с фото и категориями.', text: 'Путешествия, вещи, впечатления, учёба и забота о себе — всё, чего хочется, в одном месте. С фото, описанием и категориями.' },
+  { Icon: Check, title: 'Маленькие шаги', short: 'Шаги, прогресс и накопления к каждой мечте.', text: 'Разбейте большую мечту на шаги и отмечайте прогресс. Можно указать бюджет и записывать, сколько уже накоплено.' },
+  { Icon: Gift, title: 'Вишлист для друзей', short: 'Друзья тайно бронируют подарки по ссылке.', text: 'Поделитесь списком желаний по ссылке. Друзья бронируют подарки, чтобы они не повторялись, а вы не узнаете, кто что выбрал.' },
+  { Icon: Heart, title: 'Воспоминания', short: 'Сбывшиеся мечты с фото — в вашей коллекции.', text: 'Когда мечта сбылась, отметьте её и добавьте фото. Так собирается коллекция того, что уже случилось.' },
 ];
 
 const steps = [
@@ -281,10 +281,11 @@ export default function LandingScreen() {
           <p className="eyebrow reveal">Возможности</p>
           <h2 id="landing-features" className="reveal" style={delay(1)}>Всё, что нужно для мечт и подарков</h2>
           <div className="landing-grid">
-            {features.map(({ Icon, title, text }, index) => <article key={title} className="landing-card reveal" style={delay(index + 2)}>
+            {features.map(({ Icon, title, short, text }, index) => <article key={title} className="landing-card reveal" style={delay(index + 2)}>
               <Icon size={28}/>
               <h3>{title}</h3>
-              <p>{text}</p>
+              <p className="landing-card-text">{text}</p>
+              <p className="landing-card-short">{short}</p>
             </article>)}
           </div>
         </div>

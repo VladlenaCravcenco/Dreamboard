@@ -1,11 +1,11 @@
 import { supabase, isDemoPreview } from '../lib/supabase';
 import React, { useState } from 'react';
-import { Link, Navigate, useNavigate, useSearchParams } from 'react-router';
+import { Link, Navigate, useSearchParams } from 'react-router';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
 import { Spark } from '../components/PixelIcons';
 
-export type Mode = 'signin' | 'signup' | 'forgot';
+export type Mode = 'signin' | 'signup';
 
 export default function AuthScreen() {
   const [searchParams] = useSearchParams();
@@ -30,18 +30,14 @@ export default function AuthScreen() {
   return <Centered><AuthPanel initialMode={searchParams.get('mode') === 'signup' ? 'signup' : 'signin'} /></Centered>;
 }
 
-const panelTitles: Record<Mode, string> = { signin: 'Вход в Dreamboard', signup: 'Создайте свой Dreamboard', forgot: 'Восстановление пароля' };
+const panelTitles: Record<Mode, string> = { signin: 'Вход в Dreamboard', signup: 'Создайте свой Dreamboard' };
 
 /**
- * Sign-in / sign-up / password-reset form. Used by /auth (variant "page", with the big logo)
- * and inline on the landing page (variant "inline", compact title and a close button).
+ * Sign-in is Google-only: one button both signs in and, on first use, creates the account.
+ * Used by /auth (variant "page", with the big logo) and inline on the landing page
+ * (variant "inline", compact title and a close button).
  */
 export function AuthPanel({ initialMode = 'signin', variant = 'page', onClose }: { initialMode?: Mode; variant?: 'page' | 'inline'; onClose?: () => void }) {
-  const [mode, setMode] = useState<Mode>(initialMode);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
-  const [submitting, setSubmitting] = useState(false);
   const [googleBusy, setGoogleBusy] = useState(false);
 
   const signInWithGoogle = async () => {
@@ -54,262 +50,39 @@ export function AuthPanel({ initialMode = 'signin', variant = 'page', onClose }:
       if (error) throw error;
     } catch {
       toast.error('Не удалось начать вход через Google. Проверьте подключение и попробуйте ещё раз.');
-    } finally {
       setGoogleBusy(false);
     }
   };
-  const [pendingEmail, setPendingEmail] = useState<string | null>(null); // ← экран "проверьте почту"
-  const [resending, setResending] = useState(false);
-  const [errors, setErrors] = useState<{
-    name?: string;
-    email?: string;
-    password?: string;
-    banner?: string;
-  }>({});
-
-  const { signIn, signUp, resendConfirmation, resetPassword } = useAuth();
-  const navigate = useNavigate();
-
-  // ── Экран "письмо отправлено" ─────────────────────────────────────────────
-  if (pendingEmail) {
-    return (
-      <>
-        <div className="w-full max-w-md">
-          <div className="text-center mb-8">
-            <div className="mb-4 flex justify-center"><Spark size={48} /></div>
-            <h2 style={{ fontFamily: 'var(--font-machine)', fontSize: 32, color: 'var(--foreground)' }}>
-              Проверьте почту
-            </h2>
-          </div>
-
-          <div className="rounded-2xl p-8 shadow-xl text-center space-y-4"
-            style={{ background: 'var(--card)', border: '1px solid rgba(0,0,0,0.06)' }}>
-            <p style={{ color: 'var(--foreground)' }}>
-              Мы отправили письмо с подтверждением на
-            </p>
-            <p className="font-semibold text-lg" style={{ color: 'var(--foreground)' }}>
-              {pendingEmail}
-            </p>
-            <p className="text-sm" style={{ color: 'rgba(0,0,0,0.45)' }}>
-              Откройте письмо и нажмите кнопку «Подтвердить email» —
-              вы автоматически войдёте в Dreamboard.
-            </p>
-
-            <div className="pt-2 space-y-2">
-              <p className="text-xs" style={{ color: 'rgba(0,0,0,0.3)' }}>
-                Не пришло? Проверьте папку «Спам».
-              </p>
-              <button
-                type="button"
-                disabled={resending}
-                onClick={async () => {
-                  setResending(true);
-                  try {
-                    await resendConfirmation(pendingEmail);
-                    toast.success('Новое письмо с подтверждением отправлено');
-                  } catch (error: any) {
-                    toast.error(error?.message ?? 'Не удалось отправить письмо повторно');
-                  } finally {
-                    setResending(false);
-                  }
-                }}
-                className="text-sm hover:underline disabled:opacity-50"
-                style={{ color: 'var(--primary)' }}
-              >
-                {resending ? 'Отправляем…' : 'Отправить письмо повторно'}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setPendingEmail(null);
-                  setMode('signin');
-                }}
-                className="text-sm hover:underline"
-                style={{ color: 'var(--primary)' }}
-              >
-                Уже подтвердили? Войти →
-              </button>
-            </div>
-          </div>
-        </div>
-      </>
-    );
-  }
-
-  // ── Форма ─────────────────────────────────────────────────────────────────
-
-  const clearErrors = () => setErrors({});
-  const setErr = (k: keyof typeof errors, v: string) =>
-    setErrors(p => ({ ...p, [k]: v }));
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    clearErrors();
-    setSubmitting(true);
-
-    try {
-      if (mode === 'signin') {
-        await signIn(email.trim(), password);
-        navigate('/', { replace: true });
-
-      } else if (mode === 'signup') {
-        if (!name.trim()) { setErr('name', 'Введите ваше имя'); return; }
-        if (password.length < 6) { setErr('password', 'Пароль — минимум 6 символов'); return; }
-
-        const { needsConfirmation } = await signUp(email.trim(), password, name.trim());
-
-        if (needsConfirmation) {
-          // Показываем экран "проверьте почту"
-          setPendingEmail(email.trim());
-        } else {
-          // Подтверждение email отключено в Supabase — сразу входим
-          navigate('/', { replace: true });
-        }
-
-      } else if (mode === 'forgot') {
-        await resetPassword(email.trim());
-        toast.success('Ссылка для сброса пароля отправлена на вашу почту');
-        setMode('signin');
-      }
-
-    } catch (err: any) {
-      console.error('[AuthScreen]', err);
-      const msg: string = err?.message ?? '';
-
-      if (msg.includes('Invalid login credentials') || msg.includes('invalid_credentials')) {
-        setErr('email', ' ');
-        setErr('password', 'Неверный email или пароль');
-      } else if (msg.includes('Email not confirmed')) {
-        setErr('banner', 'Email не подтверждён. Проверьте почту и нажмите ссылку из письма.');
-      } else if (msg.includes('already registered') || msg.includes('already exists') || msg.includes('User already registered')) {
-        setErr('email', 'Этот email уже зарегистрирован');
-        setMode('signin');
-      } else if (msg.includes('Password should be at least')) {
-        setErr('password', 'Пароль — минимум 6 символов');
-      } else if (msg.includes('rate limit') || msg.includes('too many')) {
-        setErr('banner', 'Слишком много попыток. Подождите немного.');
-      } else {
-        setErr('banner', msg || 'Что-то пошло не так. Попробуйте ещё раз.');
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const switchMode = (m: Mode) => { setMode(m); clearErrors(); };
 
   return (
     <div className={`w-full max-w-md ${variant === 'inline' ? 'auth-inline' : ''}`}>
+      {variant === 'inline' ? <div className="auth-inline-head">
+        <div><p className="eyebrow">Dreamboard</p><h2>{panelTitles[initialMode]}</h2></div>
+        {onClose && <button type="button" onClick={onClose} className="auth-inline-close" aria-label="Закрыть">×</button>}
+      </div> : <div className="text-center mb-10">
+        <h1 className="text-4xl sm:text-5xl tracking-tight mb-2" style={{ fontFamily: 'var(--font-machine)', color: 'var(--foreground)' }}>
+          <Link to="/">Dreamboard</Link>
+        </h1>
+        <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+          {initialMode === 'signup' ? 'Создайте свой Dreamboard' : 'Войдите в свой аккаунт'}
+        </p>
+      </div>}
 
-        {variant === 'inline' ? <div className="auth-inline-head">
-          <div><p className="eyebrow">Dreamboard</p><h2>{panelTitles[mode]}</h2></div>
-          {onClose && <button type="button" onClick={onClose} className="auth-inline-close" aria-label="Закрыть форму">×</button>}
-        </div> : <div className="text-center mb-10">
-          <h1 className="text-4xl sm:text-5xl tracking-tight mb-2"
-            style={{ fontFamily: 'var(--font-machine)', color: 'var(--foreground)' }}>
-            <Link to="/">Dreamboard</Link>
-          </h1>
-          <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
-            {mode === 'signin' && 'Войдите в свой аккаунт'}
-            {mode === 'signup' && 'Создайте свой Dreamboard'}
-            {mode === 'forgot' && 'Восстановление пароля'}
+      <div className="auth-card rounded-2xl border border-border p-6 sm:p-8" style={{ background: 'var(--card)' }}>
+        <button type="button" disabled={googleBusy} onClick={signInWithGoogle} className="auth-google">
+          <GoogleIcon/>
+          <span>{googleBusy ? 'Открываем Google…' : 'Продолжить с Google'}</span>
+        </button>
+        <p className="mt-4 text-center text-xs leading-relaxed" style={{ color: 'var(--muted-foreground)' }}>
+          {initialMode === 'signup' ? 'Аккаунт создастся автоматически при первом входе.' : 'Нет аккаунта? Он создастся автоматически при первом входе.'}
+        </p>
+        <div className="mt-6 pt-5 text-center border-t border-border">
+          <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+            Личное пространство для ваших мечт{variant === 'page' && <> · <Link to="/" className="underline underline-offset-4">Что такое Dreamboard</Link></>}
           </p>
-        </div>}
-
-        {/* Карточка */}
-        <div className="rounded-2xl border border-border p-6 sm:p-8"
-          style={{ background: 'var(--card)', border: '1px solid rgba(0,0,0,0.06)' }}>
-
-          {mode !== 'forgot' && <div className="mb-6">
-            <button type="button" disabled={googleBusy || submitting} onClick={signInWithGoogle}
-              className="w-full rounded-xl border px-4 py-3 text-sm font-medium disabled:opacity-50"
-              style={{ borderColor: 'var(--border)', color: 'var(--foreground)', background: 'var(--card)' }}>
-              {googleBusy ? 'Открываем Google…' : 'Продолжить с Google'}
-            </button>
-            <p className="text-center text-xs mt-4" style={{ color: 'var(--muted-foreground)' }}>или войдите по почте</p>
-          </div>}
-
-          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-
-            {/* Общая ошибка */}
-            {errors.banner && (
-              <div className="rounded-xl px-4 py-3 text-sm flex gap-2"
-                style={{ background: 'var(--muted-bg)', color: 'var(--foreground)', border: '1px solid var(--foreground)' }}>
-                <span className="shrink-0">⚠</span>
-                <span>{errors.banner}</span>
-              </div>
-            )}
-
-            {/* Имя */}
-            {mode === 'signup' && (
-              <Field label="Ваше имя" error={errors.name}>
-                <input type="text" value={name}
-                  onChange={e => { setName(e.target.value); setErr('name', ''); }}
-                  placeholder="Имя или никнейм"
-                  autoComplete="name"
-                  className={cls(!!errors.name)} />
-              </Field>
-            )}
-
-            {/* Email */}
-            <Field label="Email" error={errors.email?.trim() ? errors.email : undefined}>
-              <input type="email" value={email}
-                onChange={e => { setEmail(e.target.value); setErrors(p => ({ ...p, email: '', password: '' })); }}
-                placeholder="your@email.com"
-                autoComplete="email"
-                className={cls(!!errors.email)} />
-            </Field>
-
-            {/* Пароль */}
-            {mode !== 'forgot' && (
-              <Field label="Пароль" error={errors.password}>
-                <input type="password" value={password}
-                  onChange={e => { setPassword(e.target.value); setErr('password', ''); }}
-                  placeholder="••••••••"
-                  minLength={6}
-                  autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-                  className={cls(!!errors.password)} />
-              </Field>
-            )}
-
-            <button type="submit" disabled={submitting}
-              className="w-full py-3 rounded-xl text-sm font-semibold mt-1 transition-opacity disabled:opacity-50"
-              style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
-              {submitting
-                ? 'Подождите…'
-                : mode === 'signin' ? 'Войти'
-                : mode === 'signup' ? 'Зарегистрироваться'
-                : 'Отправить ссылку'}
-            </button>
-          </form>
-
-          {/* Переключатели */}
-          <div className="mt-6 text-center space-y-2 text-sm" style={{ color: 'var(--muted-foreground)' }}>
-            {mode === 'signin' && (
-              <>
-                <p>Нет аккаунта?{' '}
-                  <Btn onClick={() => switchMode('signup')}>Зарегистрироваться</Btn>
-                </p>
-                <p><Btn onClick={() => switchMode('forgot')}>Забыли пароль?</Btn></p>
-              </>
-            )}
-            {mode === 'signup' && (
-              <p>Уже есть аккаунт?{' '}
-                <Btn onClick={() => switchMode('signin')}>Войти</Btn>
-              </p>
-            )}
-            {mode === 'forgot' && (
-              <p><Btn onClick={() => switchMode('signin')}>← Назад к входу</Btn></p>
-            )}
-          </div>
-
-          <div className="mt-6 pt-5 text-center" style={{ borderTop: '1px solid rgba(0,0,0,0.05)' }}>
-            <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
-              Личное пространство для ваших мечт{variant === 'page' && <> · <Link to="/" className="underline underline-offset-4">Что такое Dreamboard</Link></>}
-            </p>
-          </div>
         </div>
       </div>
+    </div>
   );
 }
 
@@ -324,36 +97,11 @@ function Centered({ children }: { children: React.ReactNode }) {
   );
 }
 
-function cls(hasError: boolean) {
-  return [
-    'w-full px-4 py-2.5 rounded-lg border text-sm outline-none transition-all focus:ring-2',
-    hasError
-      ? 'border-foreground bg-muted focus:ring-ring text-foreground'
-      : 'border-border bg-card focus:ring-ring focus:border-foreground',
-  ].join(' ');
-}
-
-function Field({ label, error, children }: {
-  label: string; error?: string; children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <label className="block text-sm font-medium" style={{ color: 'var(--foreground)' }}>{label}</label>
-      {children}
-      {error && (
-        <p className="text-xs flex gap-1.5" style={{ color: 'var(--foreground)' }}>
-          <span className="shrink-0">⚠</span>{error}
-        </p>
-      )}
-    </div>
-  );
-}
-
-function Btn({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button type="button" onClick={onClick}
-      className="font-semibold hover:underline" style={{ color: 'var(--foreground)' }}>
-      {children}
-    </button>
-  );
+function GoogleIcon() {
+  return <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+    <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/>
+    <path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/>
+    <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/>
+    <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/>
+  </svg>;
 }
