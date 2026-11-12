@@ -1,4 +1,3 @@
-import { localSnapshots } from '../lib/localSnapshot.mjs';
 import { PendingWrites } from '../lib/pendingWrites.mjs';
 import React, { createContext, useContext, useState, useEffect, useRef, useMemo, ReactNode } from 'react';
 import {
@@ -51,19 +50,10 @@ interface DreamContextType {
 
 const DEFAULT_QUOTE = 'The future belongs to those who believe in the beauty of their dreams.';
 
-interface LocalDreamboardData {
-  dreams: Dream[];
-  completedDreams: CompletedDream[];
-  dreamProgress: DreamProgress[];
-  dreamNotes: DreamNote[];
-  completionPhotos: DreamCompletionPhoto[];
-  savingsEvents: SavingsEvent[];
-  quote: string;
-  theme: 'light' | 'dark';
-}
-
-const getLocalStorageKey = (userId?: string) =>
-  `dreamboard_${userId ?? 'guest'}_data`;
+const THEME_KEY = 'dreamboard-theme';
+const savedTheme = (): 'light' | 'dark' => {
+  try { return localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light'; } catch { return 'light'; }
+};
 
 const toDatabaseDream = (dream: Dream | CompletedDream, userId: string) => ({
   id: dream.id,
@@ -137,12 +127,10 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [completionPhotos, setCompletionPhotos] = useState<DreamCompletionPhoto[]>([]);
   const [savingsEvents, setSavingsEvents] = useState<SavingsEvent[]>([]);
   const [quote, setQuoteState] = useState(DEFAULT_QUOTE);
-  const [theme, setThemeState] = useState<'light' | 'dark'>('light');
+  const [theme, setThemeState] = useState<'light' | 'dark'>(savedTheme);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
-  const [snapshotRetry, setSnapshotRetry] = useState(0);
-  const [loadedUser, setLoadedUser] = useState<string | null>(null);
   const accountKey = user?.id ?? 'guest';
   const activeAccount = useRef(accountKey);
   activeAccount.current = accountKey;
@@ -160,79 +148,45 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
+    try { localStorage.setItem(THEME_KEY, theme); } catch { /* the preference is optional */ }
   }, [theme]);
+
+  // Dreams live only in the database. Earlier versions kept a full offline copy in the
+  // browser; remove those leftovers once so they stop taking up space.
+  useEffect(() => {
+    try {
+      for (const key of Object.keys(localStorage)) if (/^dreamboard_.+_data$/.test(key)) localStorage.removeItem(key);
+      globalThis.indexedDB?.deleteDatabase('dreamboard-local');
+    } catch { /* nothing to clean up */ }
+  }, []);
 
   useEffect(() => {
     if (authLoading) return;
-    void loadLocalData();
+    void loadData();
   }, [authLoading, user?.id]);
 
-  useEffect(() => {
-    if (authLoading || loadedUser !== accountKey) return;
+  // ─── Loading: straight from the database ───────────────────────────────────
 
-    const data: LocalDreamboardData = {
-      dreams,
-      completedDreams,
-      dreamProgress,
-      dreamNotes,
-      completionPhotos,
-      savingsEvents,
-      quote,
-      theme,
-    };
-
-    let current = true;
-    // The offline copy is only a cache: the cloud stays the source of truth, so a failed
-    // write (private mode, storage quota) is logged quietly instead of alarming the user.
-    void localSnapshots.write(getLocalStorageKey(user?.id), data).catch(error => {
-      if (current) console.warn('[Dreamboard] offline copy not saved', error);
-    });
-    return () => { current = false; };
-  }, [
-    authLoading,
-    snapshotRetry,
-    loadedUser,
-    user?.id,
-    dreams,
-    completedDreams,
-    dreamProgress,
-    dreamNotes,
-    completionPhotos,
-    savingsEvents,
-    quote,
-    theme,
-  ]);
-
-  // ─── Local-first storage ───────────────────────────────────────────────────
-
-  const loadLocalData = async () => {
-    setLoadedUser(null);
+  const loadData = async () => {
     setLoading(true);
     setSyncError(null);
-    const data = await localSnapshots.read(getLocalStorageKey(user?.id)) as LocalDreamboardData | null;
-    if (activeAccount.current !== accountKey) return;
-
-    setDreams(data?.dreams ?? []);
-    setCompletedDreams(data?.completedDreams ?? []);
-    setDreamProgress(data?.dreamProgress ?? []);
-    setDreamNotes(data?.dreamNotes ?? []);
-    setCompletionPhotos(data?.completionPhotos ?? []);
-    setSavingsEvents(data?.savingsEvents ?? []);
-    setQuoteState(data?.quote ?? DEFAULT_QUOTE);
-    setThemeState(data?.theme ?? 'light');
-    setLoading(false);
-    setLoadedUser(accountKey);
-
+    setDreams([]);
+    setCompletedDreams([]);
+    setDreamProgress([]);
+    setDreamNotes([]);
+    setCompletionPhotos([]);
+    setSavingsEvents([]);
     if (user) {
-      syncFromSupabase().catch((error) => {
-        console.error('Dream sync failed; continuing with local data:', error);
-        if (activeAccount.current === accountKey) setSyncError('Нет связи с облаком. Изменения на этом устройстве ожидают синхронизации.');
-      });
+      try { await syncFromSupabase(); }
+      catch (error) {
+        console.error('Loading dreams failed:', error);
+        if (activeAccount.current === accountKey) setSyncError('Не удалось загрузить мечты из базы.');
+      }
     }
+    if (activeAccount.current === accountKey) setLoading(false);
   };
 
   const refreshDreams = async () => {
-    setSnapshotRetry(value => value + 1);
     try { await syncFromSupabase(); }
     catch { if (activeAccount.current === accountKey) setSyncError('Не удалось синхронизировать. Проверьте подключение и повторите.'); }
   };
@@ -289,7 +243,7 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       if (activeAccount.current === accountKey) setSyncError(null);
     } catch (error) {
       if (activeAccount.current === accountKey) {
-        setSyncError(queue.storageError ? 'Изменения пока только в памяти страницы: браузер не сохранил очередь, а облако недоступно. Не закрывайте страницу; нажмите «Повторить».' : 'Изменения ещё не сохранены в облаке. Не очищайте данные браузера; нажмите «Повторить», когда появится связь.');
+        setSyncError('Изменения ещё не сохранились в базе — нет связи. Они отправятся сами, когда связь появится.');
       }
       throw error;
     } finally {
