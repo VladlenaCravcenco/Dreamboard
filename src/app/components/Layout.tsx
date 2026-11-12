@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef } from 'react';
 import { Outlet, NavLink, useLocation } from 'react-router';
 import { Moon, Sun, User, Users, LayoutGrid, Heart, BarChart3, Spark } from './PixelIcons';
 import { useDreams } from '../context/DreamContext';
+import { CloudOff } from 'lucide-react';
 
 const tabs = [
   { to: '/', label: 'Мечты', Icon: LayoutGrid },
@@ -29,6 +30,7 @@ export default function Layout() {
           <div className="flex items-center justify-between mb-4">
             <NavLink to="/" className="brand"><span className="brand-symbol"><Spark size={24}/></span>Dreamboard</NavLink>
             <div className="flex gap-2">
+              {syncError && <button onClick={() => void refreshDreams()} title={`${syncError} Нажмите, чтобы повторить.`} aria-label={`${syncError} Повторить`} className="sync-alert p-3 rounded-full hover:bg-muted"><CloudOff size={18} aria-hidden="true"/></button>}
               <button onClick={toggleTheme} aria-label={theme === 'light' ? 'Тёмная тема' : 'Светлая тема'} className="p-3 rounded-full hover:bg-muted">{theme === 'light' ? <Moon size={18}/> : <Sun size={18}/>}</button>
               <NavLink to="/profile" aria-label="Профиль" title="Профиль" className="p-3 rounded-full hover:bg-muted"><User size={18}/></NavLink>
             </div>
@@ -39,9 +41,7 @@ export default function Layout() {
         </div>
       </header>
       <div className="screen-scroll" ref={scrollRef} onScroll={event => { positions.current[pathname] = event.currentTarget.scrollTop; }}>
-      {(syncing || syncError) && <div role="status" className="max-w-6xl mx-auto px-4 py-3 text-sm text-muted-foreground">
-        {syncError ? <div className="flex items-center justify-between gap-3"><span>{syncError}</span><button onClick={() => void refreshDreams()} className="underline shrink-0">Повторить</button></div> : 'Сохраняем и синхронизируем…'}
-      </div>}
+      <span role="status" className="sr-only">{syncError ?? (syncing ? 'Сохраняем…' : '')}</span>
 
       <Outlet />
       </div>
