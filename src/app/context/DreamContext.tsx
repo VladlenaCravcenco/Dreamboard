@@ -141,7 +141,6 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
-  const [localError, setLocalError] = useState<string | null>(null);
   const [snapshotRetry, setSnapshotRetry] = useState(0);
   const [loadedUser, setLoadedUser] = useState<string | null>(null);
   const accountKey = user?.id ?? 'guest';
@@ -183,10 +182,10 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     };
 
     let current = true;
-    void localSnapshots.write(getLocalStorageKey(user?.id), data).then(() => {
-      if (current && activeAccount.current === accountKey) setLocalError(null);
-    }).catch(() => {
-      if (current && activeAccount.current === accountKey) setLocalError('Браузер не сохранил офлайн-копию. Не закрывайте страницу до завершения синхронизации. Нажмите «Повторить».');
+    // The offline copy is only a cache: the cloud stays the source of truth, so a failed
+    // write (private mode, storage quota) is logged quietly instead of alarming the user.
+    void localSnapshots.write(getLocalStorageKey(user?.id), data).catch(error => {
+      if (current) console.warn('[Dreamboard] offline copy not saved', error);
     });
     return () => { current = false; };
   }, [
@@ -209,7 +208,6 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const loadLocalData = async () => {
     setLoadedUser(null);
     setLoading(true);
-    setLocalError(null);
     setSyncError(null);
     const data = await localSnapshots.read(getLocalStorageKey(user?.id)) as LocalDreamboardData | null;
     if (activeAccount.current !== accountKey) return;
@@ -543,7 +541,7 @@ export const DreamProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         theme,
         loading,
         syncing,
-        syncError: syncError ?? localError,
+        syncError,
         setQuote,
         toggleTheme,
         updateDreamProgress,
